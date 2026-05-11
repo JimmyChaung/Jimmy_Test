@@ -40,7 +40,11 @@ namespace admin_web.Controllers
                 await SaveFile(f, dir);
             }
 
-            string jarPath = @"C:\Users\0384\Desktop\CsvBatchUpdater_v2.jar";
+            string jarPath = Path.Combine(
+    Directory.GetCurrentDirectory(),
+    "ExternalTools",
+    "CsvBatchUpdater_v2.jar"
+);// @"C:\Users\0384\Desktop\CsvBatchUpdater_v2.jar";
 
             var args =
                 $"-jar \"{jarPath}\" " +
