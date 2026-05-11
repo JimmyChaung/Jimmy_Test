@@ -83,6 +83,10 @@
 		<Folder Include="assets\js\" />
 		<Folder Include="Models\Login_setting\" />
 		<Folder Include="Extensions\" />
+ HEAD
+
+		<Folder Include="ExternalTools\" />
+ 212a8ca (加入 MVC 專案，移除敏感資訊)
 		<Folder Include="Services\PedataServices\" />
 		<Folder Include="wwwroot\sample\" />
 		<Folder Include="wwwroot\tools\PE_Schedule_Compare\" />
