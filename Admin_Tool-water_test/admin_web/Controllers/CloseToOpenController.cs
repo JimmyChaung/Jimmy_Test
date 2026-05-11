@@ -35,7 +35,7 @@ namespace admin_web.Controllers
             string mt4Path = await SaveFile(mt4, inputDir);
             string mt5Path = await SaveFile(mt5, inputDir);
 
-            string jarPath = @"C:\Users\0384\Desktop\CTO_SGC_Generator.jar";
+            string jarPath = JarDownloader.EnsureJar("GenerateCloseToOpenJson.jar");
 
             if (!System.IO.File.Exists(jarPath))
                 return Content("找不到 jar：" + jarPath);

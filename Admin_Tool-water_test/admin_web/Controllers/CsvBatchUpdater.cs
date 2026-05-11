@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.IO;
 using Microsoft.AspNetCore.Http;
+using admin_web.Infrastructure;
 
 namespace admin_web.Controllers
 {
@@ -40,11 +41,7 @@ namespace admin_web.Controllers
                 await SaveFile(f, dir);
             }
 
-            string jarPath = Path.Combine(
-    Directory.GetCurrentDirectory(),
-    "ExternalTools",
-    "CsvBatchUpdater_v2.jar"
-);// @"C:\Users\0384\Desktop\CsvBatchUpdater_v2.jar";
+            string jarPath = JarDownloader.EnsureJar("CsvBatchUpdater_v2.jar");// @"C:\Users\0384\Desktop\CsvBatchUpdater_v2.jar";
 
             var args =
                 $"-jar \"{jarPath}\" " +

@@ -121,7 +121,7 @@ namespace admin_web.Controllers
 
                         var db = new QuerydatabicksService(
                         "https://dbc-09524e23-f03d.cloud.databricks.com",
-                        Environment.GetEnvironmentVariable("DATABRICKS_TOKEN"),//"dapi"+"3751d02ac5791aa2c87170442bb3cc14",
+                        Environment.GetEnvironmentVariable("DATABRICKS_TOKEN"),
                         "297d76a7383a8221"
                         );
 
@@ -185,7 +185,7 @@ namespace admin_web.Controllers
             // TODO: 依照 server 做不同查詢
             var db = new QuerydatabicksService(
                                   "https://dbc-09524e23-f03d.cloud.databricks.com",
-                                  Environment.GetEnvironmentVariable("DATABRICKS_TOKEN"),//"dapi"+"3751d02ac5791aa2c87170442bb3cc14",
+                                  Environment.GetEnvironmentVariable("DATABRICKS_TOKEN"),
                                   "297d76a7383a8221"
                                   );
 
@@ -209,7 +209,7 @@ namespace admin_web.Controllers
 
                 var service = new QuerydatabicksService(
                 "https://dbc-09524e23-f03d.cloud.databricks.com",
-                Environment.GetEnvironmentVariable("DATABRICKS_TOKEN"),//"dapi"+"3751d02ac5791aa2c87170442bb3cc14",
+                Environment.GetEnvironmentVariable("DATABRICKS_TOKEN"),
                 "297d76a7383a8221"
                 );
                 var data = await service.ExecuteQueryAllDataDownload(request.Sql);
@@ -246,7 +246,7 @@ namespace admin_web.Controllers
             {
                 using var client = new HttpClient();
                 client.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", Environment.GetEnvironmentVariable("DATABRICKS_TOKEN")/*"dapi"+"3751d02ac5791aa2c87170442bb3cc14",*/);
+                    new AuthenticationHeaderValue("Bearer", Environment.GetEnvironmentVariable("DATABRICKS_TOKEN"));
 
                 var res = await client.GetAsync(
                     $"https://dbc-09524e23-f03d.cloud.databricks.com/api/2.0/sql/statements/{statementId}");

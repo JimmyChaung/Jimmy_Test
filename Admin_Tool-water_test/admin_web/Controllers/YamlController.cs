@@ -13,21 +13,14 @@ using OfficeOpenXml;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.IO.Compression;
+using admin_web.Infrastructure;
 
 namespace admin_web.Controllers
 {
     public class YamlController : Controller
     {
-        private readonly string dynamicJar = Path.Combine(
-    Directory.GetCurrentDirectory(),
-    "ExternalTools",
-    "DynamicLeverageYamlGenerator.jar"
-);
-        private readonly string jsonJar = Path.Combine(
-    Directory.GetCurrentDirectory(),
-    "ExternalTools",
-    "GenerateCloseToOpenJson.jar"
-); //@"C:\Users\0384\Desktop\GenerateCloseToOpenJson.jar";
+        private readonly string dynamicJar = JarDownloader.EnsureJar("DynamicLeverageYamlGenerator.jar");
+        private readonly string jsonJar = JarDownloader.EnsureJar("GenerateCloseToOpenJson.jar"); //@"C:\Users\0384\Desktop\GenerateCloseToOpenJson.jar";
 
         [HttpGet]
         public IActionResult Index()

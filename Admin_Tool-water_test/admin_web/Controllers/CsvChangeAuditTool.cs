@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using System.IO;
+using admin_web.Infrastructure;
 
 namespace admin_web.Controllers
 {
@@ -40,11 +40,7 @@ namespace admin_web.Controllers
             }
 
             string outPath = Path.Combine(dir, "report_check_visual.xlsx");
-            string jarPath = Path.Combine(
-    Directory.GetCurrentDirectory(),
-    "ExternalTools",
-    "CsvChangeAuditTool_v2.jar"
-);// @"C:\Users\0384\Desktop\CsvChangeAuditTool_v2.jar";
+            string jarPath = JarDownloader.EnsureJar("CsvChangeAuditTool_v2.jar");// @"C:\Users\0384\Desktop\CsvChangeAuditTool_v2.jar";
 
             var args =
                 $"-jar \"{jarPath}\" " +
