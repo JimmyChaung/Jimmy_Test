@@ -1,0 +1,227 @@
+﻿@using System.Data
+@{
+    List<string> Labels = ViewBag.Labels as List<string>;
+    Dictionary<string, DataTable> Result = ViewBag.Result as Dictionary<string, DataTable>;
+}
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        #result_box{
+            display: flex;
+            margin-top: 20px;
+        }
+
+        .checkbox-container {
+            margin-bottom: 50px;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            flex: auto;
+        }
+
+        .text-canvas {
+            border: 1px solid #ccc;
+            overflow-y: auto;
+            margin-bottom: 50px;
+            max-height: 600px;
+            width: 1000px;
+            padding: 10px;
+            margin-left: 20px;
+            flex: auto;
+        }
+
+        .custom-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px; /* 縮小字體 */
+        }
+
+        .custom-table th, .custom-table td {
+            padding: 5px; /* 縮小內邊距 */
+            text-align: left;
+            border: 1px solid black;
+        }
+
+        .custom-table th {
+            background-color: #f2f2f2; /* 設定表頭背景顏色 */
+        }
+
+        .custom-table td {
+            background-color: #ffffff; /* 設定表格內容背景顏色 */
+        }
+
+        body h3 {
+            font-size: 14px; /* 縮小標題字體 */
+        }
+
+        .text-canvas {
+            font-size: 12px; /* 設定整體文字大小 */
+        }
+    </style>
+</head>
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <div class="input-group" style="margin-bottom:50px">
+        <input type="date" id="dateInputFrom" onchange="updateData()" />
+        <div class="input-group-text" id="btnGroupAddon">To</div>
+        <input type="date" id="dateInputTo" onchange="updateData()" />
+    </div>
+
+    <hr />
+
+    <div id="result_box" class="container" style="margin-bottom:50px">
+        <div class="checkbox-container">
+            @foreach (var item in Labels)
+            {
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="@item" onchange="updateData()">
+                    <label class="form-check-label" for="@item">@item</label>
+                </div>
+            }
+        </div>
+        <div class="text-canvas">
+            @if (Result.Count > 0)
+            {
+                @foreach (var TB in Result)
+                {
+                    string tableName = TB.Key;
+                    DataTable table = TB.Value;
+
+                    <h3>@tableName</h3>
+
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                @foreach (DataColumn column in table.Columns)
+                                {
+                                    <th>
+                                        @column.ColumnName
+                                    </th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (DataRow row in table.Rows)
+                            {
+                                <tr>
+                                    @foreach (var item in row.ItemArray)
+                                    {
+                                        <td>
+                                            @item
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <br />
+                }
+            }
+            else
+            {
+                <h3>There is no server selected.</h3>
+            }
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+@section Scripts {
+    <script>
+        // 輸入改變
+        function updateData() {
+            $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: 'EA 緊急查詢工具',
+                    Remark: ''
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+
+            var serverList = [];
+            $('input[type="checkbox"]:checked').each(function () {
+                serverList.push($(this).attr('id'));
+            });
+
+            var dateFrom = $('#dateInputFrom').val();
+            var dateTo = $('#dateInputTo').val();
+
+            showLoading();
+
+            $.ajax({
+                url: '@Url.Action("Refresh_EA_Data", "DataProduct")',
+                type: 'POST',
+                data: {
+                    ServerList: serverList,
+                    StartTime: dateFrom,
+                    EndTime: dateTo
+                },
+                success: function (response) {
+                    updateResult(response.result);
+                    setTimeout(function () {
+                        hideLoading();
+                    }, 500);
+                },
+                error: function (xhr, status, error) {
+                    hideLoading();
+                    console.error('Error updating data: ' + xhr.responseText);
+                }
+            });
+        }
+
+        // 輸出更新
+        function updateResult(result) {
+            var html = '';
+            if ($.isEmptyObject(result)) {
+                html = '<h3>There is no server selected.</h3>';
+            } else {
+                $.each(result, function (tableName, tableData) {
+                    html += '<h3>' + tableName + '</h3>';
+                    html += '<table class="custom-table">';
+                    html += '<thead><tr>';
+                    $.each(tableData.columns, function (index, column) {
+                        html += '<th>' + column + '</th>';
+                    });
+                    html += '</tr></thead>';
+                    html += '<tbody>';
+                    $.each(tableData.rows, function (index, row) {
+                        html += '<tr>';
+                        $.each(row, function (cellIndex, cell) {
+                            if (cell === '<NA>') {
+                                html += '<td>&lt;NA&gt;</td>';
+                            } else {
+                                html += '<td>' + cell + '</td>';
+                            }
+                        });
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table><br />';
+                });
+            }
+
+            $('.text-canvas').html(html);
+        }
+
+        // 今日日期
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dateInputFrom').value = today;
+        document.getElementById('dateInputTo').value = today;
+    </script>
+
+}

@@ -1,0 +1,58 @@
+﻿body {
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -250px;
+    width: 250px;
+    height: 100%;
+    background-color: #343a40;
+    color: white;
+    transition: left 0.3s ease-in-out;
+    z-index: 1000;
+}
+
+.sidebar.show {
+    left: 0;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar ul li {
+    padding: 15px;
+    border-bottom: 1px solid #495057;
+}
+
+.sidebar ul li a {
+    color: white;
+    text-decoration: none;
+}
+
+.toggle-btn {
+    position: fixed;
+    top: 100px;
+    left: 0;
+    z-index: 1051;
+    background-color: #343a40;
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    transition: left 0.3s ease-in-out;
+}
+
+.sidebar.show + .toggle-btn {
+    left: 250px;
+}
+
+.vertical-text {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+}

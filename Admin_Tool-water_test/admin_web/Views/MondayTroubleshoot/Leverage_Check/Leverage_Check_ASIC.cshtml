@@ -1,0 +1,283 @@
+﻿@model ExcelViewModel
+@{
+    List<string> FileNameList = ViewBag.FileNameList as List<string>;
+    string FileSelect = ViewBag.SelectDate as string;
+    int index = 1;
+}
+<head>
+    <meta charset="utf-8" />
+    <style type="text/css">
+        #sendDataButton {
+            background: #50f722
+        }
+
+        .container {
+            padding: 0 15px;
+        }
+
+        .nav-tabs {
+            white-space: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .nav-item {
+            flex: 0 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <div class="content" style="display:none;">
+        <div class="btn-group" role="group" aria-label="Basic example">
+            <button type="submit" id="RunButton" class="btn btn-success">Run</button>
+            <button type="submit" id="Download" class="btn btn-primary" @(FileNameList.Count() > 0 ? "enabled" : "disabled")>Download File</button>
+        </div>
+        <h2 id="Download"></h2>
+        <h2 id="RunResult"></h2>
+
+        <!-- 主畫面表格 -->
+        <div style="margin-top: 20px; margin-bottom: 50px">
+            @if (FileNameList != null)
+            {
+                <div class="d-flex align-items-center">
+                    <h5>資料日期：</h5>
+                    <select id="fileSelect" class="form-select" style="width:150px">
+                        @foreach (var item in FileNameList)
+                        {
+                            if (item == FileSelect)
+                            {
+                                <option value="@item" selected>@item</option>
+                            }
+                            else
+                            {
+                                <option value="@item">@item</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="d-flex overflow-auto">
+                    <ul class="nav nav-tabs flex-nowrap" id="myTab" role="tablist">
+                        @foreach (var item in Model.Tabs)
+                        {
+                            string classSet = index == 1 ? "nav-link active" : "nav-link";
+                            string ariaControl = index == 1 ? "home" : "contact";
+                            string ariaSelected = index == 1 ? "true" : "false";
+                            <li class="nav-item" role="presentation">
+                                <button class="@classSet" id="@($"id{index}")" data-bs-toggle="tab" data-bs-target="@($"#section{index}")" type="button" role="tab" aria-controls="@ariaControl" aria-selected="@ariaSelected">@item.Name.ToString()</button>
+                            </li>
+                            index++;
+                        }
+                    </ul>
+                </div>
+
+                <div class="tab-content" id="myTabContent">
+                    @{ index = 1; }
+                    @foreach (var item in Model.Tabs)
+                    {
+                        <div class="tab-pane fade" id="@($"section{index}")" role="tabpanel" aria-labelledby="@($"id{index}")">
+                            <table id="@(item.DataList.Any() ? "example" : "example1")" class="table table-striped table-bordered nowrap" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        @foreach (string Header in item.HeaderList)
+                                        {
+                                            <th>@Header</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (item.Check)
+                                    {
+                                        @foreach (var Data in item.DataList)
+                                        {
+                                            <tr>
+                                                @foreach (var item2 in Data)
+                                                {
+                                                    <td>@item2</td>
+                                                }
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="8">「@item.Name」資料無生成</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        index++;
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="d-flex align-items-center">
+                    <h5>無任何資料，請執行工具以產生新資料</h5>
+                </div>
+            }
+        </div>
+    </div>
+
+</body>
+
+@section Scripts {
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/fixedcolumns/5.0.1/js/dataTables.fixedColumns.js"></script>
+    <script src="https://cdn.datatables.net/fixedcolumns/5.0.1/js/fixedColumns.bootstrap5.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/5.0.1/css/fixedColumns.bootstrap5.css">
+
+    <script>
+        $(document).ready(function () {
+            showLoading();
+            setTimeout(function () {
+                hideLoading();
+                $('.content').show();
+
+                $('.tab-pane').addClass('show active');
+                $('#myTabContent [id^="section"] #example').DataTable({
+                    responsive: true,
+                    scrollX: true,
+                    scrollY: 600,
+                    scrollCollapse: true,
+                    fixedColumns: {
+                        leftColumns: 4,
+                    }
+                });
+                $('.tab-pane').removeClass('show active');
+                $('#myTabContent .tab-pane:first').addClass('show active');
+            }, 1000);
+
+            // 下拉式選單
+            $('#fileSelect').change(function () {
+                var selectedFile = $(this).val();
+                window.location.href = `Leverage_Check_ASIC?Date=${encodeURIComponent(selectedFile)}`;
+            });
+        });
+
+        // exe
+        $(document).ready(function () {
+            $('#RunButton').on('click', function () {
+
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'ASIC 槓桿檢查',
+                        Remark: '執行工具'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                showLoading();
+                var formData = new FormData();
+                formData.append('tool_path', 'ASIC Tool');
+                formData.append('output_path', 'output_file');
+                formData.append('exe_name', "main.exe");
+                formData.append('DeleteAllFile', false);
+
+                $('#RunButton').prop('disabled', true);
+                $('#Download').prop('disabled', true);
+                $('#uploadInput').prop('disabled', true);
+                $('#inputFile').prop('disabled', true);
+
+                $.ajax({
+                    url: '/MondayTroubleshoot/LoginAndPostData',
+                    type: 'GET',
+                    success: function (response) {
+                        console.log("原始回應:", response);
+
+                        // 確保 response 是 JSON 物件
+                        let jsonResponse = typeof response === "string" ? JSON.parse(response) : response;
+
+                        console.log("解析後:", jsonResponse);
+
+                        // 顯示結果
+                        $('#RunResult').html(`
+                            <p class="text-success">
+                                SG_Report: ${jsonResponse.SG_Report} <br>
+                                RiskCenterConfig: ${jsonResponse.RiskCenterConfig}
+                            </p>
+                        `);
+
+                        $.ajax({
+                            url: '@Url.Action("RunExe", "Universal")',
+                            type: 'POST',
+                            data: formData,
+                            contentType: false,
+                            processData: false,
+                            success: function (response) {
+                                location.reload(true); // 重新整理
+                            },
+                            error: function (error) {
+                                hideLoading();
+                                $('#RunButton').prop('disabled', false);
+                                $('#Download').prop('disabled', false);
+                                $('#Setting').prop('disabled', false);
+                                $('#uploadInput').prop('disabled', false);
+                                $('#inputFile').prop('disabled', false);
+                                $('#RunResult').append(`<p class="text-danger">${error.responseText}</p>`);
+                            }
+                        });
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("錯誤:", xhr.responseText);
+                        $('#RunResult').html(`<p class="text-danger">執行失敗: ${xhr.responseText}</p>`);
+                        hideLoading();
+                    }
+                });
+            });
+        });
+
+        // download
+        $(document).ready(function () {
+            var output_path = "ASIC Tool\\output_file";
+            var FileSelect = '@FileSelect';
+
+            $('#Download').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'ASIC 槓桿檢查',
+                        Remark: '下載檔案'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var fileName = "ASIC" + FileSelect + ".xlsx";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                    '?output_path=' + encodeURIComponent(output_path) +
+                                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+        });
+    </script>
+}

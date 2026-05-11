@@ -1,0 +1,55 @@
+﻿@{
+    ViewData["Title"] = "Dynamic Leverage YAML Generator";
+}
+
+<h2>Dynamic Leverage YAML Generator</h2>
+
+<form method="post" enctype="multipart/form-data" action="/Yaml/PrepareJson">
+    <div>
+        <label>新聞分類方式</label>
+        <select name="mode">
+            <option value="NEW" selected>新方法：讀 H 欄 Affected Symbol Type</option>
+            <option value="OLD">舊方法：依 Currency / Event 自動判斷</option>
+        </select>
+    </div>
+
+    <hr />
+
+    <div>
+        <label>主 Excel 檔案</label>
+        <input type="file" name="excel" accept=".xlsx" required />
+    </div>
+
+    <div>
+        <label>MT4 YAML Template</label>
+        <input type="file" name="mt4" accept=".yaml,.yml" required />
+    </div>
+
+    <div>
+        <label>MT5 YAML Template</label>
+        <input type="file" name="mt5" accept=".yaml,.yml" required />
+    </div>
+
+    <div>
+        <label>排除組別 Excel</label>
+        <input type="file" name="excludedGroups" accept=".xlsx" required />
+    </div>
+
+    <hr />
+
+    <div>
+        <label>
+            <input type="checkbox" name="enableExcluded" value="true" />
+            啟用排除商品清單
+        </label>
+    </div>
+
+    <div>
+        <label>排除商品 Excel</label>
+        <input type="file" name="excludedProducts" accept=".xlsx" />
+    </div>
+
+    <br />
+
+    <button type="submit">下一步：產生並編輯 JSON</button>
+</form>

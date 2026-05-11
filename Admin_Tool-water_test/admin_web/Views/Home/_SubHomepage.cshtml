@@ -1,0 +1,24 @@
+﻿@{
+    var ToolMain = ViewBag.ToolMain as Tool_Info_Model.tool_info;
+    var ToolList = ViewBag.ToolList as List<Tool_Info_Model.tool_info>;
+}
+
+@* Sidebar *@
+<div class="col-2 d-flex flex-column gap-2" role="tablist">
+    <a class="custom-list-item active" id="list-@ToolMain.ToolID-list" href="#list-@ToolMain.ToolID" role="tab" aria-controls="list-@ToolMain.ToolID">@ToolMain.ToolName</a>
+</div>
+@* Tool Cards *@
+<div class="col-9">
+    <div class="tab-content" id="nav-tabContent">
+        <div class="tab-pane fade show active" id="list-@ToolMain.ToolID" role="tabpanel" aria-labelledby="list-@ToolMain.ToolID-list">
+            @foreach (var item in ToolList)
+            {
+            <div class="tool-card">
+                <div class="tool_name">@item.ToolName</div>
+                <a href="@item.Href" class="btn-custom" role="button">使用工具<i class="bi bi-cursor"></i></a>
+                <a href="/Faq/FaqHomepage?tool=@item.ToolID" class="btn-custom" role="button">FAQ<i class="bi bi-question-circle"></i></a>
+            </div>
+            }
+        </div>
+    </div>
+</div>

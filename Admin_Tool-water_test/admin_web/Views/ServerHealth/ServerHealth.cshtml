@@ -1,0 +1,2286 @@
+﻿@model admin_web.Models.DataProduct.ServerHealth_ViewModel
+@using System.Data
+@{
+    ViewData["Title"] = "Server Health";
+    List<string> fileContent = ViewBag.FileContent as List<string>;
+    string FileName = ViewBag.FileName as string;
+    var brandlist = ViewBag.Brands as List<string>;
+    var serverlist = ViewBag.ServersByBrand as Dictionary<string, List<string>>;
+
+}
+
+<style>
+    /* 標題設計 */
+    .header-container {
+        display: flex; /* 使用 Flexbox 排列子元素 */
+        align-items: center; /* 子元素在垂直方向居中 */
+        gap: 10px; /* 子元素之間的水平間距 */
+    }
+    .header-container2 {
+        display: flex;
+        align-items: center; /* 垂直置中 */
+        background: linear-gradient(to right, #a4ebed, #00008b); /* 從淺藍到深藍的漸變 */
+        padding: 10px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .header-title {
+        color: white; /* 白色字體 */
+        margin: 0; /* 去掉標題的默認外距 */
+        font-family: Arial, sans-serif; /* 字體設置 */
+        font-size: 24px; /* 字體大小 */
+        flex-grow: 1; /* 讓標題擴展填充剩餘空間 */
+    }
+
+    .header-image {
+        width: 40px; /* 調整圖片寬度 */
+        height: 40px; /* 調整圖片高度 */
+        margin-right: 10px; /* 圖片與標題之間的間距 */
+    }
+
+    .indicator-header {
+        background-color: #87CEEB; /* 淺藍色 # */
+        color: white; /* 白色字體 */
+        padding: 5px 10px; /* 內距 */
+        display: inline-block; /* 使寬度根據內容自適應 */
+        border-radius: 5px; /* 邊角圓潤 */
+        /*margin-bottom: 15px; /* 與下方內容保持距離 */
+        font-size: 1.2em; /* 字體大小 */
+        white-space: nowrap; /* 防止自動換行 */
+    }
+
+    .chart-container {
+        display: flex;
+        justify-content: center;
+        margin: 20px auto; /* 讓圖表上下都有點間距，並水平居中 */
+        width: 80%; /* 根據需要調整寬度 */
+    }
+
+    .chart-container2 {
+        display: flex;
+        justify-content: center;
+        margin: 20px auto; /* 讓圖表上下都有點間距，並水平居中 */
+        width: 100%; /* 根據需要調整寬度 */
+    }
+
+    #navbar-example3 {
+        position: fixed; /* 固定在螢幕左側 */
+        top: 60px;
+        left: 0;
+        width: 150px; /* 設置導航欄寬度 */
+        height: 430px; /* 讓導航欄佔滿整個頁面的高度 */
+        padding: 20px; /* 添加一點內邊距 */
+        transition: width 0.3s ease; /* 讓寬度變化時有過渡效果 */
+    }
+
+    .nav-link {
+        white-space: nowrap; /* 禁止換行 */
+    }
+
+    @@media (max-width: 1600px) {
+        #navbar-example3 {
+            width: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+    }
+    .form-check-input.readonly,
+    .form-check-label {
+        pointer-events: none; /* 禁止互動 */
+    }
+
+
+
+
+</style>
+
+
+<head>
+    <meta charset="UTF-8">
+    @*<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">*@
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/antd@4.23.0/dist/antd.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/antd@4.23.0/dist/antd.min.js"></script>
+
+    @*<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>*@
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/43.2.0/ckeditor5.css" />
+
+    <script src="~/js/ServerHealth.js" asp-append-version="true"></script>
+    @*flatptckr css http:\\cdn.jsdeliver.net\npm\jAJ\*@
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</head>
+
+<body>
+    <div class="header-container2">
+        <img src="~/favicon.ico" alt="Tech Image" class="header-image">
+        <h1 class="header-title">Server Health Report</h1>
+    </div>
+
+
+    <p style="color:red" ;><i class="bi bi-exclamation-triangle-fill"></i> 當前 Daylight Saving 時間設置：@ViewBag.daylight  ，請使用「系統時間」搜尋 ，當前時間與台北時間時差：@ViewBag.timedelta </p>
+
+    <div class="d-flex align-items-center">
+        <h3>檢視伺服器：</h3>
+
+        <select id="brandSelect" name="brandSelect" class="form-select" style="width:150px">
+            <option value=""></option>
+            @foreach (var brand in brandlist)
+            {
+                //<option value="@brand">@brand</option>
+                if (ViewBag.selectedbrand == brand)
+                {
+                    <option value="@brand" selected>@brand</option>
+                }
+                else
+                {
+                    <option value="@brand">@brand</option>
+                }
+
+            }
+        </select>
+
+        @*<-- 伺服器選單 -->*@
+        <select id="serverSelect" name="serverSelect" class="form-select" style="width: 150px; margin-right: 20px;">
+            <option value=""></option>
+        </select>
+
+        @*<-- 表單，用於提交選擇的伺服器 -->*@
+        @*<-- 日期選擇器 -->*@
+        <h3>日期：</h3>
+        @*<input type="datetime-local" id="time" name="time" class="form-control" value="2024-09-16T12:30" style="width: 300px;" />*@
+        <input type="text" id="time" class="form-control" placeholder="選擇時間1" style="width: 180px;">
+        <input type="text" id="time2" class="form-control" placeholder="選擇時間2" style="width: 180px;">
+
+
+        @*<button type="submit" id="sendDataButton" class="btn btn-outline-primary">執行更新</button>*@
+
+        <button type="submit" id="sendDataButton" class="ant-btn css-var-rfi ant-btn-primary ant-btn-color-primary ant-btn-variant-solid ant-btn-icon-end" style="margin-left: 20px; margin-right: 20px; height: 32px; padding: 0 15px; display: inline-flex; align-items: center;">
+            <span class="ant-btn-icon">
+                <span role="img" aria-label="search" class="anticon anticon-search">
+                    <svg viewBox="64 64 896 896" focusable="false" data-icon="search" width="1em" height="1em" fill="currentColor" aria-hidden="true">
+                        <path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"></path>
+                    </svg>
+                </span>
+            </span>
+            <span>執行更新</span>
+        </button>
+
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#QA_modal" style="height: 32px; padding: 0 15px; display: inline-flex; align-items: center;">
+            <i class="bi bi-question-circle"></i> 操作說明
+        </button>
+
+        <!-- Modal -->
+        <div class="modal fade" id="QA_modal" tabindex="-1" aria-labelledby="QA_modal_label" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="QA_modal_label">FAQ</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="QAContent"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                        <button type="button" class="btn btn-primary save-content" data-modal="QA_modal">儲存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <hr>
+    <p style="color:red" ;><i class="bi bi-exclamation-triangle-fill"></i> 當前篩選設置將套用整個頁面且為即時更新 </p>
+
+    <div class="form-group" style="display: none;">
+        <label for="excludeGroup">
+            <i class="bi bi-exclamation-triangle-fill" style="color: red;"></i> 排除特定組別
+        </label>
+        <input type="text" id="excludeGroup" class="form-control" placeholder="請以「正則表達式」輸入，輸入範例：^M|USC$|VFX">
+    </div>
+    <div class="form-group" style="display: none;">
+        <label for="excludeLogin">
+            <i class="bi bi-exclamation-triangle-fill" style="color: red;"></i> 排除特定帳號
+        </label>
+        <input type="text" id="excludeLogin" class="form-control" placeholder="多個帳號請以「逗號」分隔，輸入範例：1456, 25788, 45698">
+    </div>
+
+    <div class="form-group">
+        <label for="excludeGroup">
+            <i class="bi bi-exclamation-triangle-fill" style="color: red;"></i> 排除特定組別
+        </label>
+        <input type="text" id="excludeGroup2" class="form-control" placeholder="請以「正則表達式」輸入，輸入範例：^M|USC$|VFX">
+    </div>
+    <div class="form-group">
+        <label for="excludeLogin">
+            <i class="bi bi-exclamation-triangle-fill" style="color: red;"></i> 排除特定帳號
+        </label>
+        <input type="text" id="excludeLogin2" class="form-control" placeholder="多個帳號請以「逗號」分隔，輸入範例：1456, 25788, 45698">
+    </div>
+    <hr>
+
+    <nav id="navbar-example3" class="navbar navbar-light flex-column align-items-stretch p-3">
+        <nav class="nav nav-pills flex-column">
+            <a class="nav-link" href="#section0">伺服器配置</a>
+            <a class="nav-link" href="#section9">伺服器分析</a>
+            <a class="nav-link" href="#section1">伺服器負載狀況</a>
+            <a class="nav-link" href="#section2">持倉量(指定)</a>
+            <a class="nav-link" href="#section3">持倉量(即時)</a>
+            <a class="nav-link" href="#section4">訂單成長量</a>
+            <a class="nav-link" href="#section5">Social Trading</a>
+            <a class="nav-link" href="#section6">高頻交易</a>
+            <a class="nav-link" href="#section7">無法被歸檔帳號</a>
+            <a class="nav-link" href="#section8">組別訂單</a>
+        </nav>
+    </nav>
+
+    <div class="header-container">
+        <div id="section0" class="indicator-header" style="scroll-margin-top: 60px;">
+            伺服器配置
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#configuration_modal">
+            <i class="bi bi-question-circle"></i>
+        </button>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="configuration_modal" tabindex="-1" aria-labelledby="configuration_modal_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="configuration_modal_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="configurationContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary save-content" data-modal="configuration_modal">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button type="button" class="btn btn-primary btn-sm d-none" data-bs-toggle="modal" data-bs-target="#view_configuration_modal">
+        <i class="bi bi-patch-question"></i>
+    </button>
+    <!-- Modal -->
+    <div class="modal fade" id="view_configuration_modal" tabindex="-1" aria-labelledby="view_configuration_modal_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="view_configuration_modal_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="view_configurationContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div id="configurationStatus" class="mt-3">
+        <div class="form-check d-inline-block me-3">
+            <input class="form-check-input readonly" type="checkbox" id="NYCheckbox">
+            <label class="form-check-label" for="NYCheckbox">機器區域：NY</label>
+        </div>
+        <div class="form-check d-inline-block me-3">
+            <input class="form-check-input readonly" type="checkbox" id="LDCheckbox">
+            <label class="form-check-label" for="LDCheckbox">機器區域：LD</label>
+        </div>
+        <div class="form-check d-inline-block me-3">
+            <input class="form-check-input readonly" type="checkbox" id="PelicanCheckbox">
+            <label class="form-check-label" for="PelicanCheckbox">Pelican</label>
+        </div>
+        <div class="form-check d-inline-block me-3">
+            <input class="form-check-input readonly" type="checkbox" id="brokereeCheckbox">
+            <label class="form-check-label" for="brokereeCheckbox">Brokeree</label>
+        </div>
+        <div class="form-check d-inline-block me-3">
+            <input class="form-check-input readonly" type="checkbox" id="MTSCheckbox">
+            <label class="form-check-label" for="MTSCheckbox">MTS</label>
+        </div>
+        <div class="form-check d-inline-block me-3">
+            <input class="form-check-input readonly" type="checkbox" id="PAMMCheckbox">
+            <label class="form-check-label" for="PAMMCheckbox">PAMM</label>
+        </div>
+        <div class="form-check d-inline-block me-3">
+            <input class="form-check-input readonly" type="checkbox" id="MAMCheckbox">
+            <label class="form-check-label" for="MAMCheckbox">MAM</label>
+        </div>
+        <div class="form-check d-inline-block me-3">
+            <input class="form-check-input readonly" type="checkbox" id="BASIC_ACCOUNTCheckbox">
+            <label class="form-check-label" for="BASIC_ACCOUNTCheckbox">基本帳戶</label>
+        </div>
+        <div class="form-check d-inline-block me-3">
+            <input class="form-check-input readonly" type="checkbox" id="USCCheckbox">
+            <label class="form-check-label" for="USCCheckbox">美分帳戶</label>
+        </div>
+        <div class="form-check d-inline-block me-3">
+            <input class="form-check-input readonly" type="checkbox" id="SGCheckbox">
+            <label class="form-check-label" for="SGCheckbox">特殊組別</label>
+        </div>
+        <div class="form-check d-inline-block me-3">
+            <input class="form-check-input readonly" type="checkbox" id="SCCheckbox">
+            <label class="form-check-label" for="SCCheckbox">特殊幣種</label>
+        </div>
+
+    </div>
+    @if (Model != null && Model.DataList_configuration != null && Model.DataList_configuration.Rows.Count > 0)
+    {
+        <script>
+                // 從後端的 DataList_configuration 將資料轉換為 JavaScript 物件
+                updateCheckBoxes(@Html.Raw(Model.Data_configuration));
+        </script>
+
+    }
+
+
+    <hr>
+
+    <div class="header-container">
+        <div id="section9" class="indicator-header" style="scroll-margin-top: 60px;">
+            伺服器分析 (EOD)
+        </div>
+
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#Indicator_modal">
+            <i class="bi bi-question-circle"></i>
+        </button>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="Indicator_modal" tabindex="-1" aria-labelledby="Indicator_modal_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="Indicator_modal_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="indicatorContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary save-content" data-modal="Indicator_modal">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm d-none" data-bs-toggle="modal" data-bs-target="#view_Indicator_modal">
+        <i class="bi bi-patch-question"></i>
+    </button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="view_Indicator_modal" tabindex="-1" aria-labelledby="view_Indicator_modal_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="view_Indicator_modal_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="view_indicatorContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    @if (Model != null && Model.IndicatorValues != null)
+    {
+
+        <p>總人數: @Model.IndicatorValues.TOTAL_USERS</p>
+        <p>總持倉數量: @Model.IndicatorValues.POSITION</p>
+        <p>總掛單數量: @Model.IndicatorValues.PENDING</p>
+        <p>組別總數量: @Model.IndicatorValues.GROUP</p>
+        <p>商品總數量: @Model.IndicatorValues.SYMBOL</p>
+        <p>Archive Delete Pendings(Disabled or > 3 Months): @Model.IndicatorValues.ARCHIVE_DELETE</p>
+        <p>Archive Inactivity Period(Disabled): @Model.IndicatorValues.ARCHIVE_INACTIVITY</p>
+    }
+
+
+
+    <hr>
+
+    <div class="header-container">
+        <div id="section1" class="indicator-header" style="scroll-margin-top: 60px;">
+            伺服器負載狀況
+        </div>
+
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#loading_modal">
+            <i class="bi bi-question-circle"></i>
+        </button>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="loading_modal" tabindex="-1" aria-labelledby="loading_modal_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="loading_modal_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="loadingContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary save-content" data-modal="loading_modal">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    @if (Model != null && Model.DataList_loading != null && Model.DataList_loading.Rows.Count > 0)
+    {
+        <table id="loading_datatable" class="table table-striped table-bordered nowrap" hidden="hidden">
+            <thead>
+                <tr>
+                    @foreach (DataColumn column in Model.DataList_loading.Columns)
+                    {
+                        <th>@column.ColumnName</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (DataRow row in Model.DataList_loading.Rows)
+                {
+                    <tr>
+                        @foreach (var item in row.ItemArray)
+                        {
+                            <td>@item</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+
+        <div class="chart-container2" id="loading_chart" style="height: 400px;"></div>
+
+        <script>
+        generateloadingChart(@Html.Raw(Model.Data_loading), 'loading_chart');
+        </script>
+
+
+    }
+    else
+    {
+        <p> </p>
+    }
+
+    <hr>
+
+    @*position*@
+
+    <div class="header-container">
+        <div id="section2" class="indicator-header" style="scroll-margin-top: 60px;">
+            單一客戶持倉量 - 指定區間
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#position_modal">
+            <i class="bi bi-question-circle"></i>
+        </button>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="position_modal" tabindex="-1" aria-labelledby="position_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="position_label_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="positionContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary save-content" data-modal="position_modal">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="content">
+        @if (Model != null && Model.DataList_position != null && Model.DataList_position.Rows.Count > 0)
+        {
+
+            <select class="form-select" id="position_timeFilterSelect" aria-label="Select a time" style="width: 300px; margin-top: 20px; ">
+                <option value="" selected>---All---</option>
+            </select>
+
+            <div class="chart-container" id="position_chart" style="height: 400px;"></div>
+
+            <table id="position_datatable" class="table table-striped table-bordered nowrap">
+                <thead>
+                    <tr>
+                        @foreach (DataColumn column in Model.DataList_position.Columns)
+                        {
+                            <th>@column.ColumnName</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (DataRow row in Model.DataList_position.Rows)
+                    {
+                        <tr>
+                            @foreach (var item in row.ItemArray)
+                            {
+                                <td>@item</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+
+
+
+        }
+        else
+        {
+            <p>未找到任何資料。</p>
+        }
+    </div>
+
+    <hr>
+
+    @*position2*@
+
+    <div class="header-container">
+        <div id="section3" class="indicator-header" style="scroll-margin-top: 60px;">
+            單一客戶持倉量 - 即時
+        </div>
+
+
+        <button type="submit" id="updateposition" class="btn btn-success">點擊更新</button>
+
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#rposition_modal">
+            <i class="bi bi-question-circle"></i>
+        </button>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="rposition_modal" tabindex="-1" aria-labelledby="rposition_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rposition_modal_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="rpositionContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary save-content" data-modal="rposition_modal">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+
+        @ViewBag.SGGroup <br>
+        @ViewBag.SQLName <br>
+        @ViewBag.selectedserver <br>
+        @ViewBag.connectionString_sg<br>
+        @ViewBag.test1 @ViewBag.test2
+
+
+
+        <div class="chart-container" id="rposition_chart" style="height: 400px; display: none;"></div>
+
+        <table id="rposition_datatable" class="table table-striped table-bordered nowrap">
+            <thead style="display:none;">
+                <tr>
+                    <th>Server</th>
+                    <th>Login</th>
+                    <th>Group</th>
+                    <th>Position</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+            <tbody id="rposition_tbody">
+            </tbody>
+        </table>
+
+
+    </div>
+
+
+
+
+    <hr>
+
+
+    @*add order*@
+    <div class="header-container">
+        <div id="section4" class="indicator-header" style="scroll-margin-top: 60px;">
+            訂單成長量
+        </div>
+
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#orderadd_modal">
+            <i class="bi bi-question-circle"></i>
+        </button>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="orderadd_modal" tabindex="-1" aria-labelledby="orderadd_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderadd_modal_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="orderaddContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary save-content" data-modal="orderadd_modal">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="content">
+        @if (Model != null && Model.DataList_orderadd != null && Model.DataList_orderadd.Rows.Count > 0)
+        {
+            <select class="form-select" id="addorder_timeFilterSelect" aria-label="Select a time" style="width: 300px; margin-top: 20px;">
+                <option value="" selected>---All---</option>
+            </select>
+
+            <div class="chart-container" id="orderadd_chart" style="height: 400px;"></div>
+
+            <table id="addorder_datatable" class="table table-striped table-bordered nowrap">
+                <thead>
+                    <tr>
+                        @foreach (DataColumn column in Model.DataList_orderadd.Columns)
+                        {
+                            <th>@column.ColumnName</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (DataRow row in Model.DataList_orderadd.Rows)
+                    {
+                        <tr>
+                            @foreach (var item in row.ItemArray)
+                            {
+                                <td>@item</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+
+
+
+        }
+        else
+        {
+            <p>未找到任何資料。</p>
+        }
+    </div>
+
+    <hr>
+
+    @*Social Trading*@
+    <div class="header-container">
+        <div id="section5" class="indicator-header" style="scroll-margin-top: 60px;">
+            Social Trading
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#socialtrading_modal">
+            <i class="bi bi-question-circle"></i>
+        </button>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="socialtrading_modal" tabindex="-1" aria-labelledby="socialtrading_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="socialtrading_modal_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="socialtradingContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary save-content" data-modal="socialtrading_modal">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="content">
+        @if (Model != null && Model.DataList_socialtrading != null && Model.DataList_socialtrading.Rows.Count > 0)
+        {
+            <select class="form-select" id="socialtrading_timeFilterSelect" aria-label="Select a time" style="width: 300px; margin-top: 20px;">
+                <option value="" selected>---All---</option>
+            </select>
+
+            <div class="chart-container" id="socialtrading_chart" style="height: 400px;"></div>
+            <table id="socialtrading_datatable" class="table table-striped table-bordered nowrap">
+                <thead>
+                    <tr>
+                        @foreach (DataColumn column in Model.DataList_socialtrading.Columns)
+                        {
+                            <th>@column.ColumnName</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (DataRow row in Model.DataList_socialtrading.Rows)
+                    {
+                        <tr>
+                            @foreach (var item in row.ItemArray)
+                            {
+                                <td>@item</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+        }
+        else
+        {
+            <p>未找到任何資料。</p>
+        }
+    </div>
+
+    <hr>
+
+    @*HFT*@
+    <div class="header-container">
+        <div id="section6" class="indicator-header" style="scroll-margin-top: 60px;">
+            高頻交易
+        </div>
+
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#hft_modal">
+            <i class="bi bi-question-circle"></i>
+        </button>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="hft_modal" tabindex="-1" aria-labelledby="hft_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="socialtrading_modal_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="hftContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary save-content" data-modal="hft_modal">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        @if (Model != null && Model.DataList_hft_A != null && Model.DataList_hft_A.Rows.Count > 0)
+        {
+            <select class="form-select" id="hft_B_timeFilterSelect" aria-label="Select a time" style="width: 300px; margin-top: 20px;">
+                <option value="" selected>---All---</option>
+            </select>
+
+            <div class="chart-container" id="hft_chart_B" style="height: 400px;"></div>
+
+            <table id="hft_datatable_B" class="table table-striped table-bordered nowrap">
+                <thead>
+                    <tr>
+                        @foreach (DataColumn column in Model.DataList_hft_B.Columns)
+                        {
+                            <th>@column.ColumnName</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (DataRow row in Model.DataList_hft_B.Rows)
+                    {
+                        <tr>
+                            @foreach (var item in row.ItemArray)
+                            {
+                                <td>@item</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+
+            <select class="form-select" id="hft_A_timeFilterSelect" aria-label="Select a time" style="width: 300px; margin-top: 20px;">
+                <option value="" selected>---All---</option>
+            </select>
+
+            <div class="chart-container" id="hft_chart_A" style="height: 400px;"></div>
+
+            <!-- 選取 -->
+            <div class="btn-group" role="group" aria-label="Basic checkbox toggle button group" style="margin-top:10px;">
+
+                <input type="checkbox" class="btn-check" id="filterclose" autocomplete="off">
+                <label class="btn btn-outline-info" for="filterclose">關單</label>
+
+                <input type="checkbox" class="btn-check" id="filtermodify" autocomplete="off">
+                <label class="btn btn-outline-info" for="filtermodify">改單</label>
+
+                <input type="checkbox" class="btn-check" id="filteropen" autocomplete="off">
+                <label class="btn btn-outline-info" for="filteropen">開單</label>
+
+                <input type="checkbox" class="btn-check" id="filterpending" autocomplete="off">
+                <label class="btn btn-outline-info" for="filterpending">掛單</label>
+
+                <input type="checkbox" class="btn-check" id="filterdelete" autocomplete="off">
+                <label class="btn btn-outline-info" for="filterdelete">刪單</label>
+
+            </div>
+
+            <table id="hft_datatable_A" class="table table-striped table-bordered nowrap">
+                <thead>
+                    <tr>
+                        @foreach (DataColumn column in Model.DataList_hft_A.Columns)
+                        {
+                            <th>@column.ColumnName</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (DataRow row in Model.DataList_hft_A.Rows)
+                    {
+                        <tr>
+                            @foreach (var item in row.ItemArray)
+                            {
+                                <td>@item</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+        }
+        else
+        {
+            <p>未找到任何資料。</p>
+        }
+    </div>
+
+    <hr>
+
+    @*archive*@
+    <div class="header-container">
+        <div id="section7" class="indicator-header" style="scroll-margin-top: 60px;">
+            無法被歸檔帳號
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#archive_modal">
+            <i class="bi bi-question-circle"></i>
+        </button>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="archive_modal" tabindex="-1" aria-labelledby="archive_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="socialtrading_modal_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="archiveContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary save-content" data-modal="archive_modal">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        @if (Model != null && Model.DataList_archive != null && Model.DataList_archive.Rows.Count > 0)
+        {
+            <select class="form-select" id="archive_timeFilterSelect" aria-label="Select a time" style="width: 300px; margin-top: 20px;">
+                <option value="" selected>---All---</option>
+            </select>
+
+            <div class="chart-container" id="archive_chart" style="height: 400px;"></div>
+            <!-- 選取 -->
+            <div class="btn-group" role="group" aria-label="Basic checkbox toggle button group" style="margin-top:10px;">
+                <input type="checkbox" class="btn-check" id="filterlogin" autocomplete="off">
+                <label class="btn btn-outline-info" for="filterlogin">未符合歸檔條件(帳號登入)</label>
+
+                <input type="checkbox" class="btn-check" id="filtertrade" autocomplete="off">
+                <label class="btn btn-outline-info" for="filtertrade">未符合歸檔條件(開關單)</label>
+
+                <input type="checkbox" class="btn-check" id="filterdw" autocomplete="off">
+                <label class="btn btn-outline-info" for="filterdw">未符合歸檔條件(出入金)</label>
+
+                <input type="checkbox" class="btn-check" id="filterposped" autocomplete="off">
+                <label class="btn btn-outline-info" for="filterposped">未符合歸檔條件(持倉掛單)</label>
+
+                <input type="checkbox" class="btn-check" id="filterbalance" autocomplete="off">
+                <label class="btn btn-outline-info" for="filterbalance">未符合歸檔條件(Balance≤10)</label>
+
+                <input type="checkbox" class="btn-check" id="filterarchive" autocomplete="off">
+                <label class="btn btn-outline-info" for="filterarchive">可歸檔帳號清單</label>
+            </div>
+
+            <table id="archive_datatable" class="table table-striped table-bordered nowrap">
+                <thead>
+                    <tr>
+                        @foreach (DataColumn column in Model.DataList_archive.Columns)
+                        {
+                            <th>@column.ColumnName</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (DataRow row in Model.DataList_archive.Rows)
+                    {
+                        <tr>
+                            @foreach (var item in row.ItemArray)
+                            {
+                                <td>@item</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+
+
+
+        }
+        else
+        {
+            <p>未找到任何資料。</p>
+        }
+    </div>
+
+    <hr>
+
+    @*archive*@
+    <div class="header-container">
+        <div id="section8" class="indicator-header" style="scroll-margin-top: 60px;">
+            組別訂單
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#groupticket_modal">
+            <i class="bi bi-question-circle"></i>
+        </button>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="groupticket_modal" tabindex="-1" aria-labelledby="groupticket_label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="socialtrading_modal_label">FAQ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="groupticketContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary save-content" data-modal="groupticket_modal">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="content">
+        @if (Model != null && Model.DataList_groupticket != null && Model.DataList_groupticket.Rows.Count > 0)
+        {
+            <select class="form-select" id="groupticket_timeFilterSelect" aria-label="Select a time" style="width: 300px; margin-top: 20px;">
+                <option value="" selected>---All---</option>
+            </select>
+            <div class="chart-container" id="groupticket_chart" style="height: 400px;"></div>
+
+
+            <table id="groupticket_datatable" class="table table-striped table-bordered nowrap">
+                <thead>
+                    <tr>
+                        @foreach (DataColumn column in Model.DataList_groupticket.Columns)
+                        {
+                            <th>@column.ColumnName</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (DataRow row in Model.DataList_groupticket.Rows)
+                    {
+                        <tr>
+                            @foreach (var item in row.ItemArray)
+                            {
+                                <td>@item</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+
+        }
+        else
+        {
+            <p>未找到任何資料。</p>
+        }
+    </div>
+
+    <hr>
+
+    @if (Model != null && Model.DataList_loading != null && Model.DataList_loading.Rows.Count > 0)
+    {
+        <div class="chart-container" id="singal_loading1_chart" style="height: 400px; display: none;"></div>
+        <div class="chart-container" id="singal_loading2_chart" style="height: 400px; display: none;"></div>
+        <div class="chart-container" id="singal_loading3_chart" style="height: 400px; display: none;"></div>
+        <script>
+        // 例如，畫 Memory 折線圖
+        generateSingleLineChart(@Html.Raw(Model.Data_loading), 'singal_loading1_chart', 'Memory');
+
+        // 畫 CPU 折線圖
+        generateSingleLineChart(@Html.Raw(Model.Data_loading), 'singal_loading2_chart', 'CPU');
+
+        // 畫 Network 折線圖
+        generateSingleLineChart(@Html.Raw(Model.Data_loading), 'singal_loading3_chart', 'Network');
+
+        </script>
+    }
+
+</body>
+
+@section Scripts {
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+
+    <!-- Echarts.js -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+
+
+
+    <script>
+        $(document).ready(function () {
+            @*
+            $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: '健康報告',
+                    Remark: '開啟介面'
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+            *@
+            // 顯示 loading
+            showLoading();
+
+            //
+            initPage();
+
+            // 點擊執行更新按鈕後，刷新頁面
+            $('#sendDataButton').on('click', function () {
+                
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: '健康報告',
+                        Remark: '執行更新'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+                
+                $('#sendDataButton').prop('disabled', true);
+                showLoading();
+
+                var selectedBrand = $('#brandSelect').val();
+                var selectedServer = $('#serverSelect').val();
+                var selectedTime = $('#time').val();
+                var selectedTime2 = $('#time2').val();
+                var excludeGroup = $('#excludeGroup').val();
+                var excludeLogin = $('#excludeLogin').val();
+
+                //var [startTime, endTime] = selectedTime.split(" to ").map(time => time.trim());
+
+                if (selectedServer && selectedTime && selectedTime2) {
+                    localStorage.setItem('triggerUpdatePosition', 'true');
+
+                    //var newUrl = `ServerHealth?brandselect=${encodeURIComponent(selectedBrand)}&serverselect=${encodeURIComponent(selectedServer)}&time=${encodeURIComponent(selectedTime)}`;
+
+                    var newUrl = `ServerHealth?brandselect=${encodeURIComponent(selectedBrand)}&serverselect=${encodeURIComponent(selectedServer)}&time=${encodeURIComponent(selectedTime)}&endTime=${encodeURIComponent(selectedTime2)}`;
+
+                    // 檢查是否填入 excludeGroup
+                    if (excludeGroup) {
+                        newUrl += `&excludeGroup=${encodeURIComponent(excludeGroup)}`;
+                    }
+
+                    // 檢查是否填入 excludeLogin
+                    if (excludeLogin) {
+                        newUrl += `&excludeLogin=${encodeURIComponent(excludeLogin)}`;
+                    }
+
+                    @*
+                    console.log(newUrl);
+                    console.log(selectedTime);
+                    console.log(selectedTime2);
+                    *@
+                    window.location.href = newUrl;
+
+                } else {
+                    hideLoading();
+                    $('#sendDataButton').prop('disabled', false);
+                }
+            });
+        });
+
+        // 初始化葉面 加入active樣式，
+        // $('.tab-pane').addClass('show active');
+        function initPage() {
+            // 加入 active 樣式
+            $('.tab-pane').addClass('show active');
+
+            // 初始 DataTable
+            @*
+            var tables = [
+                initializeDataTable('position_datatable', 25),
+                initializeDataTable('addorder_datatable'),
+                initializeDataTable('socialtrading_datatable'),
+                initializeDataTable('hft_datatable_A'),
+                initializeDataTable('hft_datatable_B'),
+                initializeDataTable('archive_datatable'),
+                initializeDataTable('groupticket_datatable', 25)
+            ];
+            *@
+            var table = initializeDataTable('position_datatable', 25);
+            var table2 = initializeDataTable('addorder_datatable');
+            var table3 = initializeDataTable('socialtrading_datatable');
+            var table4 = initializeDataTable('hft_datatable_A');
+            var table7 = initializeDataTable('hft_datatable_B');
+            var table5 = initializeDataTable('archive_datatable');
+            var table6 = initializeDataTable('groupticket_datatable', 25);
+
+
+            // 自定義篩選條件
+            // HFT 表格的篩選條件
+            //
+            var hftFilterIds = ['#filterclose', '#filtermodify', '#filteropen', '#filterpending', '#filterdelete'];
+            var hftValidStatuses = ['close', 'modify', 'open', 'pending', 'delete'];
+
+            // Archive 表格的篩選條件
+            var archiveFilterIds = ['#filterlogin', '#filtertrade', '#filterdw', '#filterposped', '#filterbalance', '#filterarchive'];
+            var archiveValidStatuses = ['login', 'trade', 'DW', 'position', 'balance', 'achievable'];
+
+            // 添加篩選功能到 HFT 表格
+            addCustomFilter('hft_datatable_A', hftFilterIds,3, hftValidStatuses);
+            initTableFilters(hftFilterIds, table4);
+
+            // 添加篩選功能到 Archive 表格
+            addCustomFilter('archive_datatable', archiveFilterIds,3 ,archiveValidStatuses);
+            initTableFilters(archiveFilterIds, table5);
+
+
+            //時間篩選功能
+            generateTimeFilterOptions(table, '#position_timeFilterSelect',6);
+            addTimeFilter(table, '#position_timeFilterSelect', 6);
+
+            generateTimeFilterOptions(table2, '#addorder_timeFilterSelect', 8);
+            addTimeFilter(table2, '#addorder_timeFilterSelect', 8);
+
+            generateTimeFilterOptions(table3, '#socialtrading_timeFilterSelect', 7);
+            addTimeFilter(table3, '#socialtrading_timeFilterSelect', 7);
+
+            generateTimeFilterOptions(table7, '#hft_B_timeFilterSelect', 7);
+            addTimeFilter(table7, '#hft_B_timeFilterSelect', 7);
+
+            generateTimeFilterOptions(table4, '#hft_A_timeFilterSelect', 6);
+            addTimeFilter(table4, '#hft_A_timeFilterSelect', 6);
+
+            generateTimeFilterOptions(table5, '#archive_timeFilterSelect', 6);
+            addTimeFilter(table5, '#archive_timeFilterSelect', 6);
+
+            generateTimeFilterOptions(table6, '#groupticket_timeFilterSelect', 4);
+            addTimeFilter(table6, '#groupticket_timeFilterSelect', 4);
+
+            addExcludeFilter(table, '#excludeGroup2', '#excludeLogin2', 2, 1)
+            addExcludeFilter(table2, '#excludeGroup2', '#excludeLogin2', 2, 1)
+            addExcludeFilter(table3, null, '#excludeLogin2', undefined, 1)
+            addExcludeFilter(table4, '#excludeGroup2', '#excludeLogin2', 4, 1)
+            addExcludeFilter(table7, '#excludeGroup2', '#excludeLogin2', 5, 1)
+            addExcludeFilter(table5, '#excludeGroup2', '#excludeLogin2', 2, 1)
+            addExcludeFilter(table6, '#excludeGroup2', null, 1, undefined)
+
+            // 使用 Promise.all 等待所有 generate 函數完成
+            Promise.all([
+                generateBarChart2('position_datatable', 'position_chart', 'Login', 'Position', 'Position', 1, 3),
+                generateBarChart2('addorder_datatable', 'orderadd_chart', 'Login', 'Increase', 'Order', 1, 5),
+                generateBarChart2('socialtrading_datatable', 'socialtrading_chart', 'Login', 'Order', 'Order', 1, 2),
+                generateBarChart2('hft_datatable_B', 'hft_chart_B', 'Login', 'Request Count', 'Request', 1, 4),
+                generateStackBarChart('hft_datatable_A', 'hft_chart_A', 'Login', 'Request Count', 1, 4, 3),
+                generateStackBarChart2('archive_datatable', 'archive_chart', 'Login', 'History Order', 1, 4, 3),
+                generateBarChartWithThreshold('groupticket_datatable', 'groupticket_chart', 'Group', 'History Order', 'History Order', 1, 2, 1500000)
+            ])
+                .then(() => {
+                    //
+                    return Promise.all([
+                        //tables.map(table => table.draw())
+                        table.draw(),
+                        table2.draw(),
+                        table3.draw(),
+                        table4.draw(),
+                        table5.draw(),
+                        table6.draw(),
+                        table7.draw()
+                    ])
+                })
+                .then(() => {
+                    hideLoading(); // 所有表格都完成初始化後隱藏 loading
+                    //console.log('初始化完成');
+                })
+                .catch(error => {
+                    console.error("資料初始化失敗", error);
+                    hideLoading();
+                });
+        }
+
+        $(document).ready(function () {
+            // 檢查是否需要觸發 updateposition 點擊事件  
+            if (localStorage.getItem('triggerUpdatePosition') === 'true') {
+                // 觸發 #updateposition
+                $('#updateposition').trigger('click');
+                localStorage.removeItem('triggerUpdatePosition');
+            }
+        });
+
+    </script>
+
+
+
+
+    <script>
+        //及時持倉按鈕
+        $('#updateposition').on('click', function () {
+            var serversel = document.getElementById('serverSelect').value;
+            var excludeGroup = $('#excludeGroup').val(); // 讀取排除 Group 的值
+            var excludeLogin = $('#excludeLogin').val(); // 讀取排除 Login 的值
+
+            if (!serversel) {
+                alert("請選擇一個伺服器。"); // 顯示提示信息
+                return; // 阻止執行後續
+            }
+
+            // 1. 銷毀現有的 DataTable
+            if ($.fn.DataTable.isDataTable('#rposition_datatable')) {
+                $('#rposition_datatable').DataTable().clear().destroy();
+            }
+
+            var data = { server: serversel };
+            if (excludeGroup) data.excludeGroup = excludeGroup;
+            if (excludeLogin) data.excludeLogin = excludeLogin;
+
+            $.ajax({
+                url: '@Url.Action("RefreshPosition", "ServerHealth")', //
+                type: 'POST',
+                data: { server: serversel}, //{ server: serversel },
+                success: function (data) {
+                    // 清空舊的表格內容
+                    $('#rposition_tbody').empty();
+                    console.log(data)
+                    // 生成新的表格資料
+                    $.each(data, function (index, row) {
+                        var newRow = '<tr>';
+                        $.each(row, function (key, value) {
+                            newRow += '<td>' + value + '</td>';
+                        });
+                        newRow += '</tr>';
+                        $('#rposition_tbody').append(newRow);
+                    });
+                    // 3. 重新初始化 DataTable
+                    $('#rposition_datatable thead').show();
+
+                    var table7 = $('#rposition_datatable').DataTable({
+                        responsive: true,
+                        scrollX: true,
+                        columnDefs: [
+                            { className: "text-center", targets: "_all" } // 將所有列的文字置中
+                        ],
+                        "bInfo": false,// 隱藏表格資訊
+                         pageLength: 25
+                    });
+
+                    table7.draw();
+                    $('#rposition_chart').show();
+                    generateBarChart2('rposition_datatable', 'rposition_chart', 'Login', 'Position', 'Posiiton', 1, 3);
+                    addExcludeFilter(table7, '#excludeGroup2', '#excludeLogin2', 2, 1)
+            },
+            error: function (xhr, status, error) {
+                console.log("更新失敗: " + error);
+            }
+            });
+
+        });
+
+    </script>
+
+
+
+    <script>
+    // 將 serverlist 從後端傳遞到前端
+    var serverList = @Html.Raw(Json.Serialize(serverlist));
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var selectedBrand = document.getElementById('brandSelect').value;
+        if (selectedBrand) {
+            populateServers(selectedBrand); // 自動填充伺服器選項
+        }
+    });
+
+    // 品牌變更時，填充伺服器選項
+    document.getElementById('brandSelect').addEventListener('change', function () {
+        var selectedBrand = this.value;
+        populateServers(selectedBrand); // 更新伺服器選單
+    });
+
+    function populateServers(selectedBrand) {
+        var serverSelect = document.getElementById('serverSelect');
+        serverSelect.innerHTML = '<option value="">選擇伺服器</option>'; // 清空伺服器選單
+
+        if (selectedBrand && serverList[selectedBrand]) {
+            var servers = serverList[selectedBrand]; // 使用Script中的serverList
+            var selectedServer = '@ViewBag.selectedserver'; // 頁面中已選的伺服器
+
+            servers.forEach(function (server) {
+                var option = document.createElement('option');
+                option.value = server;
+                option.text = server;
+
+                // 保持伺服器選項的選中狀態
+                if (server === selectedServer) {
+                    option.selected = true;
+                }
+
+                serverSelect.appendChild(option);
+            });
+        }
+    }
+    </script>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var urlParams = new URLSearchParams(window.location.search);
+
+            // 初始化開始時間選擇器 (#time)
+            flatpickr('#time', {
+                enableTime: true, // 啟用時間選擇
+                dateFormat: "Y-m-d H:i", // 設置日期和時間的格式
+                time_24hr: true, // 啟用24小時制
+                defaultDate: (function () {
+                    var startTime = urlParams.get('time'); // 獲取 URL 中的開始時間
+                    if (startTime) {
+                        return startTime; // 使用指定的開始時間
+                    } else {
+                        var currentDate = new Date();
+                        currentDate.setHours(currentDate.getHours() - 7); // 默認開始時間
+                        return currentDate.toISOString().slice(0, 16).replace('T', ' ');
+                    }
+                })()
+            });
+
+            // 初始化結束時間選擇器 (#time2)
+            flatpickr('#time2', {
+                enableTime: true, // 啟用時間選擇
+                dateFormat: "Y-m-d H:i", // 設置日期和時間的格式
+                time_24hr: true, // 啟用24小時制
+                defaultDate: (function () {
+                    var endTime = urlParams.get('endTime'); // 獲取 URL 中的結束時間
+                    if (endTime) {
+                        return endTime; // 使用指定的結束時間
+                    } else {
+                        var currentDate = new Date();
+                        currentDate.setHours(currentDate.getHours() - 4); // 默認結束時間
+                        return currentDate.toISOString().slice(0, 16).replace('T', ' ');
+                    }
+                })()
+            });
+
+            // 設置其他輸入框默認值
+            $('#excludeGroup').val(urlParams.get('excludeGroup') || '');
+            $('#excludeLogin').val(urlParams.get('excludeLogin') || '');
+        });
+
+    </script>
+
+
+    <script type="importmap">
+        {
+            "imports": {
+                "ckeditor5": "https://cdn.ckeditor.com/ckeditor5/43.2.0/ckeditor5.js",
+                "ckeditor5/": "https://cdn.ckeditor.com/ckeditor5/43.2.0/"
+            }
+        }
+    </script>
+
+
+
+    <script type="module">
+        import {
+            ClassicEditor,
+            Alignment,
+            Autoformat,
+            Bold,
+            Italic,
+            Underline,
+            BlockQuote,
+            Base64UploadAdapter,
+            CloudServices,
+            Essentials,
+            Font,
+            Heading,
+            HorizontalLine,
+            Image,
+            ImageCaption,
+            ImageInsert,
+            ImageResize,
+            ImageStyle,
+            ImageToolbar,
+            ImageUpload,
+            SimpleUploadAdapter,
+            SpecialCharacters,
+            SpecialCharactersEssentials,
+            PictureEditing,
+            Indent,
+            IndentBlock,
+            Link,
+            List,
+            Mention,
+            Paragraph,
+            PasteFromOffice,
+            Table,
+            TableCellProperties,
+            TableColumnResize,
+            TableProperties,
+            TableToolbar,
+            TextTransformation,
+        } from 'ckeditor5';
+    $(document).ready(function () {
+        // 用來存放 CKEditor 實例的變數
+        let editors = {};
+
+        // modal 配置
+        const modals = [
+            { id: '#QA_modal', id2: 'QA_modal', fileName: 'QA.txt', contentSelector: '#QAContent' },
+            { id: '#configuration_modal', id2: 'configuration_modal', fileName: 'configuration.txt', contentSelector: '#configurationContent' },
+            { id: '#Indicator_modal', id2:'Indicator_modal', fileName: 'Indicator.txt', contentSelector: '#indicatorContent' },
+            { id: '#loading_modal', id2:'loading_modal', fileName: 'loading.txt', contentSelector: '#loadingContent' },
+            { id: '#position_modal', id2: 'position_modal', fileName: 'position.txt', contentSelector: '#positionContent' },
+            { id: '#rposition_modal', id2: 'rposition_modal', fileName: 'rposition.txt', contentSelector: '#rpositionContent' },
+            { id: '#orderadd_modal', id2: 'orderadd_modal', fileName: 'orderadd.txt', contentSelector: '#orderaddContent' },
+            { id: '#socialtrading_modal', id2: 'socialtrading_modal', fileName: 'socialtrading.txt', contentSelector: '#socialtradingContent' },
+            { id: '#hft_modal', id2: 'hft_modal', fileName: 'hft.txt', contentSelector: '#hftContent' },
+            { id: '#archive_modal', id2: 'archive_modal', fileName: 'archive.txt', contentSelector: '#archiveContent' },
+            { id: '#groupticket_modal', id2: 'groupticket_modal', fileName: 'groupticket.txt', contentSelector: '#groupticketContent' },
+        ];
+        //
+        modals.forEach(modal => {
+            ClassicEditor
+                .create(document.querySelector(modal.contentSelector), {
+                    plugins: [
+                        Alignment,
+                        Autoformat,
+                        Base64UploadAdapter,
+                        BlockQuote,
+                        Bold,
+                        CloudServices,
+                        Essentials,
+                        Font,
+                        Heading,
+                        HorizontalLine,
+                        Image,
+                        ImageCaption,
+                        ImageInsert,
+                        ImageResize,
+                        ImageStyle,
+                        ImageToolbar,
+                        ImageUpload,
+                        SimpleUploadAdapter,
+                        SpecialCharacters,
+                        SpecialCharactersEssentials,
+                        Indent,
+                        IndentBlock,
+                        Italic,
+                        Link,
+                        List,
+                        Mention,
+                        Paragraph,
+                        PasteFromOffice,
+                        PictureEditing,
+                        Table,
+                        TableCellProperties,
+                        TableColumnResize,
+                        TableProperties,
+                        TableToolbar,
+                        TextTransformation,
+                        Underline,
+                    ],
+                    toolbar: [
+                        'undo', 'redo', '|',
+                        'bold', 'italic', 'underline', '|',
+                        'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', "|",
+                        "insertImage","insertTable", "blockQuote", "|",
+                        "bulletedList", "numberedList", '|',
+                        "outdent", "indent", '|',
+                        "findAndReplace"
+                    ],
+                    heading: {
+                        options: [
+                            {
+                                model: 'paragraph',
+                                title: 'Paragraph',
+                                class: 'ck-heading_paragraph',
+                            },
+                            {
+                                model: 'heading1',
+                                view: 'h1',
+                                title: 'Heading 1',
+                                class: 'ck-heading_heading1',
+                            },
+                            {
+                                model: 'heading2',
+                                view: 'h2',
+                                title: 'Heading 2',
+                                class: 'ck-heading_heading2',
+                            },
+                            {
+                                model: 'heading3',
+                                view: 'h3',
+                                title: 'Heading 3',
+                                class: 'ck-heading_heading3',
+                            },
+                            {
+                                model: 'heading4',
+                                view: 'h4',
+                                title: 'Heading 4',
+                                class: 'ck-heading_heading4',
+                            },
+                        ],
+                    },
+
+                    table: {
+                        contentToolbar: [
+                            'tableColumn', 'tableRow', 'mergeTableCells'
+                        ]
+                    },
+                    link: {
+                        addTargetToExternalLinks: true,
+                        defaultProtocol: 'https://',
+                    },
+                    findAndReplace: {
+                        uiType: 'dropdown'
+                    },
+                    @*
+                    simpleUpload: {
+                        uploadUrl: '/ServerHealth/UploadImage', // 指定上傳圖片的 API
+
+                    }
+                    *@
+                })
+                .then(editor => {
+                    editors[modal.id] = editor;
+                    // 當 modal 打開時，讀取對應的內容
+                    $(modal.id).on('show.bs.modal', function () {
+                        loadFileContent(modal.fileName, editors[modal.id]);
+                    });
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+
+        });
+
+        // 讀取檔案內容函數
+        function loadFileContent(fileName, editor) {
+            $.get('@Url.Action("GetFileContent", "ServerHealth")', { fileName: fileName }, function (data) {
+                editor.setData(data);
+            }).fail(function () {
+                alert("內容讀取失敗");
+            });
+        }
+
+        // 保存編輯內容
+        $('.save-content').on('click', function () {
+            const modalId = $(this).data('modal');  // 獲取是哪個 modal
+            const modalConfig = modals.find(modal => modal.id2 === modalId);
+            const fileName = modalConfig.fileName;
+            //console.log(modalConfig);
+            //console.log(fileName);
+            const editor = editors[modalConfig.id];  // CKEditor
+            //console.log(editors);
+            const updatedContent = editor.getData();
+
+            $.ajax({
+                url: '@Url.Action("SaveFileContent", "ServerHealth")',
+                type: 'POST',
+                data: { content: updatedContent, fileName: fileName },
+                success: function () {
+                    alert("內容已保存");
+                },
+                error: function () {
+                    alert("保存失敗，請重試");
+                }
+            });
+        });
+    });
+    </script>
+
+
+
+
+    <script>
+        const modals = [
+            { id: '#view_configuration_modal', id2: 'view_configuration_modal', fileName: 'configuration.txt', contentSelector: '#view_configurationContent', readOnly: false },
+            { id: '#view_Indicator_modal', id2: 'view_Indicator_modal', fileName: 'Indicator.txt', contentSelector: '#view_indicatorContent', readOnly: true },
+            // 添加其他的 modals...
+        ];
+        modals.forEach(modal => {
+            $(modal.id).on('show.bs.modal', function () {
+                loadFileContent(modal.fileName, $(modal.contentSelector));  // 傳入 jQuery 對象
+            });
+        });
+        function loadFileContent(fileName, target) {
+            $.get('@Url.Action("GetFileContent", "ServerHealth")', { fileName: fileName }, function (data) {
+                if (target instanceof jQuery) {
+                    target.html(data); // 只讀模式直接顯示文本
+                } else {
+                    target.setData(data);
+                }
+            }).fail(function () {
+                alert("內容讀取失敗");
+            });
+        }
+    </script>
+}
+
+
+
+@*
+        存一下
+    <script>
+            //進入頁面後的動作 (讀取動畫開關  datatable設定)
+            $(document).ready(function () {
+                showLoading("Loading");
+
+                setTimeout(function () {
+                    hideLoading();
+
+                    $('.tab-pane').addClass('show active');
+                    var table = $('#position_datatable').DataTable({
+                        responsive: true,
+                        scrollX: true,
+                        columnDefs: [
+                            { className: "text-center", targets: "_all" }
+                        ],
+                        "bInfo": false
+                    });
+
+                    var table2 = $('#addorder_datatable').DataTable({
+                        responsive: true,
+                        scrollX: true,
+                        columnDefs: [
+                            { className: "text-center", targets: "_all" }
+                        ],
+                        "bInfo": false
+                    });
+
+                    var table3 = $('#socialtrading_datatable').DataTable({
+                        responsive: true,
+                        scrollX: true,
+                        columnDefs: [
+                            { className: "text-center", targets: "_all" }
+                        ],
+                        "bInfo": false
+                    });
+
+                    var table4 = $('#hft_datatable').DataTable({
+                        responsive: true,
+                        scrollX: true,
+                        columnDefs: [
+                            { className: "text-center", targets: "_all" }
+                        ],
+                        "bInfo": false
+                    });
+
+                    var table5 = $('#archive_datatable').DataTable({
+                        responsive: true,
+                        scrollX: true,
+                        columnDefs: [
+                            { className: "text-center", targets: "_all" }
+                        ],
+                        "bInfo": false
+                    });
+
+                    var table6 = $('#groupticket_datatable').DataTable({
+                        responsive: true,
+                        scrollX: true,
+                        columnDefs: [
+                            { className: "text-center", targets: "_all" }
+                        ],
+                        "bInfo": false
+                    });
+
+
+                    @*
+                    var loading = $('#loading_datatable').DataTable({
+                        responsive: true,
+                        scrollX: true,
+                        columnDefs: [
+                            { className: "text-center", targets: "_all" } // 將所有列的文字置中
+                        ],
+                        "bInfo": false
+                    });
+
+
+
+                $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                    // 篩選 for hft table
+                    var filtertotal = $('#filtertotal').prop('checked');
+                    var filterclose = $('#filterclose').prop('checked');
+                    var filtermodify = $('#filtermodify').prop('checked');
+                    var filteropen = $('#filteropen').prop('checked');
+                    var filterpending = $('#filterpending').prop('checked');
+                    var filterdelete = $('#filterdelete').prop('checked');
+                    var filtercheck = $('#filtercheck').prop('checked');
+
+                    var status_col = data[data.length - 1] || "";
+
+
+                    if ((filtertotal && status_col == "total") ||
+                        (filterclose && status_col == "close") ||
+                        (filtermodify && status_col == "modify") ||
+                        (filteropen && status_col == "open") ||
+                        (filterpending && status_col == "pending") ||
+                        (filterdelete && status_col == "delete") ||
+                        (filtercheck && status_col == "unknown")) {
+                        return true;
+                    }
+
+                    return !filtertotal && !filterclose && !filtermodify && !filteropen && !filterpending && !filterdelete && !filtercheck;
+                });
+
+                $('#filtertotal,#filterclose, #filtermodify, #filteropen,#filterpending,#filterdelete,#filtercheck').on('change', function () {
+                    table4.draw();
+                });
+
+                $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                    // 篩選 for archive table
+                    var filterlogin = $('#filterlogin').prop('checked');
+                    var filtertrade = $('#filtertrade').prop('checked');
+                    var filterdw = $('#filterdw').prop('checked');
+                    var filterposped = $('#filterposped').prop('checked');
+                    var filterbalance = $('#filterbalance').prop('checked');
+                    var filterarchive = $('#filterarchive').prop('checked');
+
+                    var status_col = data[data.length - 1] || "";
+
+                    if ((filterlogin && status_col == "login") ||
+                        (filtertrade && status_col == "trade") ||
+                        (filterdw && status_col == "DW") ||
+                        (filterposped && status_col == "position") ||
+                        (filterbalance && status_col == "balance") ||
+                        (filterarchive && status_col == "achievable")) {
+                        return true;
+                    }
+
+                    return !filterlogin && !filtertrade && !filterdw && !filterposped && !filterbalance && !filterarchive;
+                });
+
+                $('#filterlogin,#filtertrade, #filterdw, #filterposped,#filterbalance,#filterarchive').on('change', function () {
+                    table5.draw();
+                });
+
+
+                table.draw();
+                table2.draw();
+                table3.draw();
+                table4.draw();
+                table5.draw();
+                table6.draw();
+                //loading.draw();
+
+                generateBarChart2('position_datatable', 'position_chart', 'Login', 'Position', 'Posiiton', 2, 4);
+                generateBarChart2('addorder_datatable', 'orderadd_chart', 'Login', 'Increase', 'Order', 2, 6);
+
+                generateStackBarChart('hft_datatable', 'hft_chart', 'Login', 'Request Count');
+
+            }, 1000);
+
+        });
+
+
+
+
+
+
+    <script>
+        //FAQ
+        $(document).ready(function () {
+            // 用來存放 CKEditor 實例的變數
+            let indicatorEditor, loadingEditor;
+
+            // 初始化 CKEditor
+            ClassicEditor
+                .create(document.querySelector('#indicatorContent'))
+                .then(editor => {
+                    indicatorEditor = editor;  // 儲存 CKEditor 實例
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+
+            ClassicEditor
+                .create(document.querySelector('#loadingContent'))
+                .then(editor => {
+                    loadingEditor = editor;  // 儲存 CKEditor 實例
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+
+            // 當 modal 打開時，讀取對應的 txt 檔案並顯示內容
+            $('#Indicator_modal').on('show.bs.modal', function () {
+                loadFileContent('Indicator.txt', indicatorEditor);
+            });
+
+            $('#loading_modal').on('show.bs.modal', function () {
+                loadFileContent('loading.txt', loadingEditor);
+            });
+
+            // 通用的讀取檔案內容函數
+            function loadFileContent(fileName, editor) {
+                $.get('@Url.Action("GetFileContent", "ServerHealth")', { fileName: fileName }, function (data) {
+                    editor.setData(data);
+                }).fail(function () {
+                    alert("檔案讀取失敗");
+                });
+            }
+
+            // 保存編輯內容的邏輯
+            $('.save-content').on('click', function () {
+                var modalId = $(this).data('modal');  // 獲取是哪個 modal
+                var fileName = modalId === 'Indicator_modal' ? 'Indicator.txt' : 'loading.txt';  // 對應的檔案
+                var editor = modalId === 'Indicator_modal' ? indicatorEditor : loadingEditor;  // CKEditor 實例
+
+                var updatedContent = editor.getData();  // 獲取編輯後的內容
+
+                $.ajax({
+                    url: '@Url.Action("SaveFileContent", "ServerHealth")',
+                    type: 'POST',
+                    data: { content: updatedContent, fileName: fileName },
+                    success: function () {
+                        alert("內容已保存");
+                    },
+                    error: function () {
+                        alert("保存失敗，請重試！");
+                    }
+                });
+            });
+
+        });
+
+
+    </script>
+    .
+
+    <script>
+    $(document).ready(function () {
+        // 用來存放 CKEditor 實例的變數
+        let editors = {};
+
+        // modal 配置
+        const modals = [
+            { id: '#Indicator_modal', id2:'Indicator_modal', fileName: 'Indicator.txt', contentSelector: '#indicatorContent' },
+            { id: '#loading_modal', id2:'loading_modal', fileName: 'loading.txt', contentSelector: '#loadingContent' },
+            { id: '#position_modal', id2: 'position_modal', fileName: 'position.txt', contentSelector: '#positionContent' },
+            { id: '#rposition_modal', id2: 'rposition_modal', fileName: 'rposition.txt', contentSelector: '#rpositionContent' },
+        ];
+        //
+        modals.forEach(modal => {
+            ClassicEditor
+                .create(document.querySelector(modal.contentSelector))
+                .then(editor => {
+                    editors[modal.id] = editor;
+                    // 當 modal 打開時，讀取對應的內容
+                    $(modal.id).on('show.bs.modal', function () {
+                        loadFileContent(modal.fileName, editors[modal.id]);
+                    });
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+
+
+        });
+
+        // 讀取檔案內容函數
+        function loadFileContent(fileName, editor) {
+            $.get('@Url.Action("GetFileContent", "ServerHealth")', { fileName: fileName }, function (data) {
+                editor.setData(data);
+            }).fail(function () {
+                alert("內容讀取失敗");
+            });
+        }
+
+        // 保存編輯內容
+        $('.save-content').on('click', function () {
+            const modalId = $(this).data('modal');  // 獲取是哪個 modal
+            const modalConfig = modals.find(modal => modal.id2 === modalId);
+            const fileName = modalConfig.fileName;
+            console.log(modalConfig);
+            console.log(fileName);
+            const editor = editors[modalConfig.id];  // CKEditor
+            console.log(editors);
+            const updatedContent = editor.getData();
+
+            $.ajax({
+                url: '@Url.Action("SaveFileContent", "ServerHealth")',
+                type: 'POST',
+                data: { content: updatedContent, fileName: fileName },
+                success: function () {
+                    alert("內容已保存");
+                },
+                error: function () {
+                    alert("保存失敗，請重試");
+                }
+            });
+        });
+    });
+    </script>
+
+
+
+
+
+
+        <script>
+        $(document).ready(function () {
+            // 顯示模態框
+            $('[id^=openModalBtn]').on('click', function () {
+                const modalId = $(this).data('modal-id');
+                $('.modal-overlay').fadeIn(200); // 顯示背景遮罩
+                setTimeout(() => {
+                    $(`#${modalId}`).css('display', 'block').addClass('show').removeClass('hide'); // 顯示模態框
+                }, 10); // 短暫延遲後再切換 display
+            });
+
+            // 隱藏模態框
+            function closeModal() {
+                $('.modal-overlay').fadeOut(200); // 隱藏背景遮罩
+                $('.ant-modal').addClass('hide').removeClass('show');
+                setTimeout(function () {
+                    $('.ant-modal').css('display', 'none'); // 完全隱藏模態框
+                }, 300); // 時間與 CSS 動畫一致
+            }
+
+            // 點擊背景遮罩或按鈕關閉模態框
+            $('#closeModalBtn, #cancelBtn, .modal-overlay').on('click', function () {
+                closeModal();
+            });
+        });
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // 當按鈕被點擊時，打開相對應的模態框
+            document.querySelectorAll('button[id^="openModalBtn"]').forEach(button => {
+                button.addEventListener('click', function () {
+                    const modalId = this.dataset.modalId; // 取得 data-modal-id
+                    document.getElementById(modalId).style.display = 'block'; // 顯示對應的模態框
+                });
+            });
+
+            // 關閉模態框的事件處理
+            document.querySelectorAll('.ant-modal-close, #cancelBtn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const modal = this.closest('.ant-modal'); // 找到最近的模態框
+                    if (modal) {
+                        modal.style.display = 'none'; // 隱藏模態框
+                    }
+                });
+            });
+        });
+    </script>
+    <script type="importmap">
+        {
+            "imports": {
+                "ckeditor5": "https://cdn.ckeditor.com/ckeditor5/43.2.0/ckeditor5.js",
+                "ckeditor5/": "https://cdn.ckeditor.com/ckeditor5/43.2.0/"
+            }
+        }
+    </script>
+
+    <script  type="module">
+        import {
+            ClassicEditor,
+            Autoformat,
+            Bold,
+            Italic,
+            Underline,
+            BlockQuote,
+            Base64UploadAdapter,
+            CloudServices,
+            Essentials,
+            Heading,
+            Image,
+            ImageCaption,
+            ImageResize,
+            ImageStyle,
+            ImageToolbar,
+            ImageUpload,
+            SimpleUploadAdapter,
+            PictureEditing,
+            Indent,
+            IndentBlock,
+            Link,
+            List,
+            MediaEmbed,
+            Mention,
+            Paragraph,
+            PasteFromOffice,
+            Table,
+            TableColumnResize,
+            TableToolbar,
+            TextTransformation,
+            Font,
+        } from 'ckeditor5';
+
+    $(document).ready(function () {
+        let editors = {};
+
+        // modal 配置
+        const modals = [
+            { id: 'Indicator_modal', fileName: 'Indicator.txt', contentSelector: '#indicatorContent' },
+            { id: 'loading_modal', fileName: 'loading.txt', contentSelector: '#loadingContent' },
+            { id: 'position_modal', fileName: 'position.txt', contentSelector: '#positionContent' },
+            { id: 'rposition_modal', fileName: 'rposition.txt', contentSelector: '#rpositionContent' },
+        ];
+
+        // 初始化 CKEditor
+        modals.forEach(modal => {
+            ClassicEditor
+                .create(document.querySelector(modal.contentSelector), {
+                    plugins: [
+                        Autoformat,
+                        BlockQuote,
+                        Bold,
+                        CloudServices,
+                        Essentials,
+                        Heading,
+                        Image,
+                        ImageCaption,
+                        ImageResize,
+                        ImageStyle,
+                        ImageToolbar,
+                        ImageUpload,
+                        SimpleUploadAdapter,
+                        Base64UploadAdapter,
+                        Indent,
+                        IndentBlock,
+                        Italic,
+                        Link,
+                        List,
+                        MediaEmbed,
+                        Mention,
+                        Paragraph,
+                        PasteFromOffice,
+                        PictureEditing,
+                        Table,
+                        TableColumnResize,
+                        TableToolbar,
+                        TextTransformation,
+                        Underline,
+                        Font,
+                    ],
+                    toolbar: [
+                        'undo', 'redo', '|',
+                        'bold', 'italic', 'underline', '|',
+                        'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', "|",
+                        "link", "uploadImage", "insertTable", "blockQuote", "mediaEmbed", "|",
+                        "bulletedList", "numberedList", '|',
+                        "outdent", "indent"
+                    ],
+                    heading: {
+                        options: [
+                            {
+                                model: 'paragraph',
+                                title: 'Paragraph',
+                                class: 'ck-heading_paragraph',
+                            },
+                            {
+                                model: 'heading1',
+                                view: 'h1',
+                                title: 'Heading 1',
+                                class: 'ck-heading_heading1',
+                            },
+                            {
+                                model: 'heading2',
+                                view: 'h2',
+                                title: 'Heading 2',
+                                class: 'ck-heading_heading2',
+                            },
+                            {
+                                model: 'heading3',
+                                view: 'h3',
+                                title: 'Heading 3',
+                                class: 'ck-heading_heading3',
+                            },
+                            {
+                                model: 'heading4',
+                                view: 'h4',
+                                title: 'Heading 4',
+                                class: 'ck-heading_heading4',
+                            },
+                        ],
+                    },
+                    image: {
+                        resizeOptions: [
+                            {
+                                name: 'resizeImage:original',
+                                label: 'Default image width',
+                                value: null,
+                            },
+                            {
+                                name: 'resizeImage:50',
+                                label: '50% page width',
+                                value: '50',
+                            },
+                            {
+                                name: 'resizeImage:75',
+                                label: '75% page width',
+                                value: '75',
+                            },
+                        ],
+                        toolbar: [
+                            'imageTextAlternative',
+                            'toggleImageCaption',
+                            '|',
+                            'imageStyle:inline',
+                            'imageStyle:wrapText',
+                            'imageStyle:breakText',
+                            '|',
+                            'resizeImage',
+                        ],
+                    },
+                    table: {
+                        contentToolbar: [
+                            'tableColumn', 'tableRow', 'mergeTableCells'
+                        ]
+                    },
+                    link: {
+                        addTargetToExternalLinks: true,
+                        defaultProtocol: 'https://',
+                    }
+                })
+                .then(editor => {
+                    editors[modal.id] = editor;
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        });
+
+        // 點擊按鈕時顯示模態框並讀取內容
+        $('[id^=openModalBtn]').on('click', function () {
+            const modalId = $(this).data('modal-id'); // 獲取按鈕上的 modal ID
+            const modalConfig = modals.find(modal => modal.id === modalId);
+            if (modalConfig) {
+                loadFileContent(modalConfig.fileName, editors[modalId]);
+                openModal(modalId);
+            }
+        });
+
+        // 讀取檔案內容
+        function loadFileContent(fileName, editor) {
+            $.get('@Url.Action("GetFileContent", "ServerHealth")', { fileName: fileName }, function (data) {
+                editor.setData(data);
+            }).fail(function () {
+                alert("內容讀取失敗");
+            });
+        }
+
+        // 保存編輯內容
+        $('.ant-modal-footer .ant-btn-primary').on('click', function () {
+            const modalId = $(this).closest('.ant-modal').attr('id'); // 動態獲取當前模態框的 ID
+            const fileName = modals.find(modal => modal.id === modalId).fileName;
+            const editor = editors[modalId];
+            const updatedContent = editor.getData();
+
+            $.ajax({
+                url: '@Url.Action("SaveFileContent", "ServerHealth")',
+                type: 'POST',
+                data: { content: updatedContent, fileName: fileName },
+                success: function () {
+                    alert("內容已保存");
+                },
+                error: function () {
+                    alert("保存失敗，請重試");
+                }
+            });
+        });
+    });
+
+
+    </script>
+
+*@
+
+
+

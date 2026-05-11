@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspose.Words" Version="23.6.0" />
+    <PackageReference Include="CsvHelper" Version="32.0.3" />
+    <PackageReference Include="DocX" Version="3.0.0" />
+    <PackageReference Include="EPPlus" Version="7.1.3" />
+    <PackageReference Include="MetaTrader4.Manager.ClrWrapperCore.x64" Version="1.1370.1" />
+    <PackageReference Include="MetaTrader4.Manager.Contracts.x64" Version="0.4.1415.2" />
+    <PackageReference Include="MySql.Data" Version="8.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="assets\js\" />
+    <Folder Include="Models\Login_setting\" />
+  </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties properties_4launchsettings_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
+
+</Project>

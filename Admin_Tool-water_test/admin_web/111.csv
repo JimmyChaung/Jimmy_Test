@@ -1,0 +1,21 @@
+Server,Login,Name,Enable,Groups,IpFilter,Manager,Admiinistrator,Reports,InternalMailSystem,SendNews,ShowOnlineClients,ConfigureServerPlugins,PushNotifications,SuperviseTraders,Accountant,RiskManager,Journals,MarketWatch,PersonalDetails,AutomaticServerReport,AccessToApplicationMarket,Dealer,Trade,Available
+AU1,1,First Admin,1,",*,",0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
+AU1,2,Lost & found (for lost commissi,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+AU1,4,I.T API account (Do Not Delete),0,",*,",0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0
+AU1,5,Systems & Test,0,",*,",0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
+AU1,7,Antony Goddard,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+AU1,11,ENF Manager,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+AU1,12,Sanjeev-reporting,0,",!S_BGI_08*,!M_WSFX*,!R_REBATEWS*,!R_REBATEGFT*,!M_MYFX*,!S_MYFX*,!R_REBATEMM*,!M_FID*,S_*,M_*,R_*,J_*,A_*,SAM_PG*,SAM_BH*,SAM_UD*,SAM_BT*,",0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0
+AU1,8,ENF Manager,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+AU1,9,Sanjeev-reporting,0,",!S_BGI_08*,!M_WSFX*,!R_REBATEWS*,!R_REBATEGFT*,!M_MYFX*,!S_MYFX*,!R_REBATEMM*,!M_FID*,S_*,M_*,R_*,J_*,A_*,SAM_PG*,SAM_BH*,SAM_UD*,SAM_BT*,",0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0
+AU1,10,Antony Goddard,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+AU2,1,First Admin,1,",*,",0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
+AU2,2,Lost & found (for lost commissi,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+AU2,4,I.T API account (Do Not Delete),0,",*,",0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0
+AU2,5,Systems & Test,0,",*,",0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
+AU2,7,Antony Goddard,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+AU2,11,ENF Manager,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+AU2,12,Sanjeev-reporting,0,",!S_BGI_08*,!M_WSFX*,!R_REBATEWS*,!R_REBATEGFT*,!M_MYFX*,!S_MYFX*,!R_REBATEMM*,!M_FID*,S_*,M_*,R_*,J_*,A_*,SAM_PG*,SAM_BH*,SAM_UD*,SAM_BT*,",0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0
+AU2,8,ENF Manager,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+AU2,9,Sanjeev-reporting,0,",!S_BGI_08*,!M_WSFX*,!R_REBATEWS*,!R_REBATEGFT*,!M_MYFX*,!S_MYFX*,!R_REBATEMM*,!M_FID*,S_*,M_*,R_*,J_*,A_*,SAM_PG*,SAM_BH*,SAM_UD*,SAM_BT*,",0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0
+AU2,10,Antony Goddard,0,,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

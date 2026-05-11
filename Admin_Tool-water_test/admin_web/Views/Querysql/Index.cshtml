@@ -1,0 +1,925 @@
+﻿@model admin_web.Models.MysqlModel;
+@{
+    ViewData["Title"] = "查詢來源切換";
+}
+
+<head>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material.min.css" />
+    <style>
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+            padding: 12px 20px;
+        }
+
+        .editor-header {
+            background: #21252b;
+            color: #abb2bf;
+            border-bottom: 2px solid #181a1f;
+        }
+
+        .result-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: white;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .btn-execute-collapse {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            color: white;
+        }
+
+            .btn-execute-collapse:hover {
+                background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+                transform: translateY(-1px);
+            }
+
+        .manual-query-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 2px solid #dee2e6;
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+
+        /*datatable*/
+        /* 讓表格容器有卡片感 */
+        .dataTables_wrapper {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        /* 標題 (Title/Header) 深度美化 */
+        #reuslt_table thead th {
+            background-color: #f1f5f9 !important; /* 輕盈的灰藍色 */
+            color: #334155 !important; /* 深色質感字體 */
+            font-weight: 600 !important;
+            font-size: 0.9rem;
+            padding: 12px 15px !important;
+            border-bottom: 2px solid #cbd5e1 !important; /* 較明顯的底線 */
+            border-top: none !important;
+            white-space: nowrap; /* 防止標題斷行 */
+        }
+
+        /* 資料列內容美化 */
+        #reuslt_table tbody td {
+            padding: 12px 15px !important;
+            color: #475569;
+            font-size: 0.875rem;
+            border-bottom: 1px solid #f1f5f9 !important;
+            vertical-align: middle;
+        }
+
+        /* 滑鼠滑過的整行變色效果 */
+        #reuslt_table tbody tr:hover {
+            background-color: #f8fafc !important;
+        }
+
+        /* 自定義現代感捲軸 */
+        .dataTables_scrollBody::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .dataTables_scrollBody::-webkit-scrollbar-thumb {
+            background: #cbd5e1; /* 捲軸顏色 */
+            border-radius: 10px;
+        }
+
+        .dataTables_scrollBody::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* 隱藏 DataTables 預設的格線，改用我們的自定義線條 */
+        table.dataTable.no-footer {
+            border-bottom: none !important;
+        }
+
+        /* 1. 強制讓表頭內部容器撐滿 100% */
+        .dataTables_scrollHeadInner,
+        .dataTables_scrollHeadInner > table {
+            width: 100% !important;
+            margin: 0 !important;
+        }
+    </style>
+</head>
+@*  *@
+<div class="container py-3">
+
+    <!-- 左上角切換按鈕 -->
+    <div class="d-flex gap-2 mb-3">
+        <button class="btn btn-outline-primary" onclick="loadPartial('DataLakePartial')">
+            DataLake
+        </button>
+        <button class="btn btn-outline-success" onclick="loadPartial('MysqlPartial')">
+            MySQL
+        </button>
+    </div>
+
+    <!-- partial render 區域 -->
+    <div id="content-area" class="border rounded p-4">
+        <p class="text-muted">請選擇查詢來源</p>
+    </div>
+
+</div>
+
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+    <!-- Code Mirror -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <!-- SQL mode -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+    <!-- hint system -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <!-- SQL hint -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
+
+    <script>
+        // 這裡放你的 displayResults 和 downloadExcel
+        let myDataTable = null;
+    </script>
+}
+
+
+<script>
+    function loadPartial(name) {
+        fetch(`/Querysql/${name}`)
+            .then(res => res.text())
+            .then(html => {
+                document.getElementById("content-area").innerHTML = html;
+                initSkillChoices(); // AJAX 載入後初始化 Choices
+            });
+    }
+
+    // benson 初始化 Choices.js
+    function initSkillChoices() {
+        document.querySelectorAll('select.choices-select').forEach(function (el) {
+            if (!el.dataset.choicesInit) {
+                new Choices(el, {
+                    removeItemButton: true,
+                    searchEnabled: true
+                });
+                el.dataset.choicesInit = "true"; // 標記已初始化
+            }
+        });
+    }
+
+    // benson
+    document.addEventListener('DOMContentLoaded', function () {
+        // 初始化首頁已存在的 partial
+        initSkillChoices();
+        $(document).off('click', '#btn-server-mapping').on('click', '#btn-server-mapping', function () {
+            console.log("按鈕被點擊");
+            serverMapping();
+            initSqlEditor();
+        });
+    });
+    // DataLake 查詢 > benson
+    $(document).on("change", ".dl-check", function () {
+        let target = $(this).data("target");
+
+        if ($(this).is(":checked")) {
+            $(target).slideDown();
+        } else {
+            $(target).slideUp().find("input").val(""); // 清空
+        }
+    });
+
+    // DataLake 查詢 > benson
+    $(document).on("click", "#btnDL", function () {
+
+        let selected = [];
+
+        $(".dl-check:checked").each(function () {
+            let key = $(this).data("key");
+            let target = $(this).data("target");
+            let inputVal = $(target).find("input").val() || "";
+
+            let values = inputVal.split(",")
+                .map(v => v.trim())
+                .filter(v => v.length > 0);
+
+            selected.push({ key: key, values: values });
+        });
+
+        if (selected.length === 0) {
+            $("#dl_result").html("<span class='text-danger'>請至少勾選一個查詢項目！</span>");
+            return;
+        }
+
+        // Server Select
+        let servers = $("#serverSelect").val() || [];
+        if (servers.length === 0) {
+            $("#dl_result").html("<span class='text-danger'>請選擇 Server！</span>");
+            return;
+        }
+
+        // Payload
+        let payload = {
+            servers: servers,
+            items: selected
+        };
+
+        $.ajax({
+            url: "/Querysql/RunDataLakeQuery",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(payload),
+            success: function (result) {
+                $("#dl_result").html(`<pre>${result}</pre>`);
+            }
+        });
+    });
+
+    // MySQL 查詢 > benson
+    $(document).on("click", "#btnMy", function () {
+        let isChecked = $("#my_ck").is(":checked");
+        if (!isChecked) {
+            $("#my_result").html("<span class='text-danger fw-bold'>請先勾選核取方框才能查詢！</span>");
+            return;
+        }
+        $.ajax({
+            url: "/Querysql/RunMysqlQuery",
+            type: "POST",
+            data: { enableFlag: isChecked },
+            success: function (result) {
+                $("#my_result").html(`<pre>${result}</pre>`);
+            }
+        });
+    });
+
+    // ========================================= Water =========================================
+    // 清空編輯器 > water
+    function clearEditor() {
+        sqlEditor.setValue('');
+        document.getElementById('modalResult').innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                <p>執行查詢後結果將顯示在這裡</p>
+            </div>
+        `;
+    }
+
+    // 載入範例 SQL > water
+    function loadExample() {
+        const exampleSQL = `SELECT *
+        FROM asicdemoreport.mt4_config
+        WHERE 1=1;`;
+
+        sqlEditor.setValue(exampleSQL);
+    }
+
+    // 字元篩選
+    function sanitizeSql(sql) {
+        return sql.replace(/--.*$|;.*$/gm, '');
+    }
+
+    // 執行手動查詢 > water
+    function executeManualQuery() {
+        const sqlQuery = sqlEditor.getValue().trim();
+        const limitQuery = "limit 100";
+        const resultDiv = document.getElementById('modalResult');
+
+        if (!sqlQuery) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-warning alert-custom border-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    請輸入 SQL 查詢語句
+                </div>
+            `;
+            return;
+        }
+
+        // 顯示載入中
+        resultDiv.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">執行中...</span>
+                    </div>
+                    <p class="mt-3 text-muted">正在執行查詢...</p>
+                </div>
+            `;
+
+        if (!sqlQuery.trim().toLowerCase().startsWith("select")) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    載入失敗：禁止 SELECT 以外的搜尋
+                </div>
+            `;
+            return;
+        }
+
+        const sanitized_query = sanitizeSql(sqlQuery);
+
+        const query = sanitized_query.concat(' ', limitQuery);
+
+        // 模擬查詢執行
+        setTimeout(() => {
+            console.log(sqlQuery);
+
+            console.log(query);
+            $.ajax({
+                url: "/Querysql/RunMysqlQueryByManual",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    SqlCode: query
+                }),
+                success: function (result) {
+                    displayResults(result);
+                },
+                error: function (err) {
+                    console.error(err);
+                    resultDiv.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                載入失敗：${err.message}
+                            </div>
+                        `;
+                }
+            });
+        }, 1000);
+    }
+
+
+    // 顯示查詢結果 > benson updata
+    function displayResults(data) {
+        const resultDiv = document.getElementById('modalResult');
+
+        if (!data || data.length === 0) {
+            resultDiv.innerHTML = `<div class="alert alert-info">查無資料</div>`;
+            return;
+        }
+
+        // 1. 銷毀舊實體 (確保重新查詢時不會報錯)
+        if ($.fn.DataTable.isDataTable('#reuslt_table')) {
+            $('#reuslt_table').DataTable().destroy();
+            resultDiv.innerHTML = "";
+        }
+
+        // 2. 自動取得欄位標題
+        const columns = Object.keys(data[0]);
+        const dtColumns = columns.map(col => ({
+            data: col,
+            title: col,
+            defaultContent: ""
+        }));
+
+        // 3. 建立表格外殼 (只留 ID，內容由 DataTables 生成)
+        resultDiv.innerHTML = `
+        <div class="table-responsive">
+            <table id="reuslt_table" class="table table-striped table-hover w-100">
+            </table>
+        </div>`;
+
+        // 4. 初始化 DataTable
+        myDataTable = $('#reuslt_table').DataTable({
+            data: data,           // 這裡傳入完整的 10000 筆資料
+            columns: dtColumns,
+            scrollY: "300px",
+            scrollX: true,
+            page: false,
+            // 2. 關閉底部的資訊顯示 (顯示第...筆)
+            info: false,
+            dom: 'lBrti',
+            // --- 新增這個事件 ---
+            drawCallback: function (settings) {
+                // 取得總筆數 (或是過濾後的筆數)
+                var api = this.api();
+                var count = api.rows().count();
+
+                // 將數字更新到你指定的 HTML 元素
+                $('#record-count').text(count);
+            },
+
+            deferRender: true,    // 關鍵：只在畫面上渲染目前看得到的幾筆，效能極好
+            pageLength: 10,       // 預設顯示 10 筆
+            lengthMenu: [10, 50, 100], // 讓使用者切換顯示數量
+            buttons: [
+                {
+                    extend: 'excel',
+                    text: '隱藏的下載按鈕', // 這個文字不重要，因為你會隱藏它
+                    className: 'buttons-excel d-none', // d-none 是 Bootstrap 的隱藏 class
+                    exportOptions: {
+                        modifier: {
+                            page: 'all' // 確保下載全部資料
+                        }
+                    }
+                }
+            ],
+            language: {
+                url: "https://cdn.datatables.net/plug-ins/1.13.7/i18n/zh-HANT.json"
+            }
+        });
+
+    }
+
+    // 原本的執行查詢按鈕 > benson
+    document.getElementById('btnMy').addEventListener('click', function () {
+        const checkbox = document.getElementById('my_ck');
+        const resultDiv = document.getElementById('my_result');
+
+        if (!checkbox.checked) {
+            resultDiv.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        請先勾選「同意執行查詢」
+                    </div>
+                `;
+            return;
+        }
+
+        resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    自動查詢執行成功！
+                </div>
+            `;
+    });
+
+
+    // server mapping
+    function serverMapping() {
+        //$("#mysql-table").innerHTML = `
+        //    <div class="text-center py-5">
+        //        <div class="spinner-border text-success"></div>
+        //        <p class="mt-3 text-muted">正在重整查詢...</p>
+        //    </div>
+        //`;
+
+        fetch('/Querysql/GetMysqlServerList')
+            .then(res => res.json())
+            .then(data => {
+                if ($.fn.DataTable.isDataTable('#mysql-table')) {
+                    console.log("destroy datatable");
+                    $('#mysql-table').DataTable().destroy();
+                }
+
+                tt = data;
+                let columns = [
+                    { title: "Server Name", width: "60%" },
+                    { title: "Sql Name", width: "40%" }
+                ];
+
+                let theadHtml = "<tr>";
+                columns.forEach(col => {
+                    theadHtml += `<th style="width:${col.width}">${col.title}</th>`;
+                });
+                theadHtml += "</tr>";
+                $("#mysql-table thead").html(theadHtml);
+
+                let tbodyHtml = "";
+                data.forEach(s => {
+                    tbodyHtml += `<tr>
+                                <td>${s.serverInfo.serverName}</td>
+                                <td>${s.serverInfo.sqlName}</td>
+                              </tr>`;
+                });
+                $("#mysql-table tbody").html(tbodyHtml);
+
+                serverTableMap = {};
+                data.forEach(row => {
+                    serverTableMap[row.serverInfo.sqlName] = row.tables ?? [];
+                });
+
+                initMySQLTable();
+                console.log(serverTableMap);
+            })
+            .catch(console.error);
+    }
+
+    function initMySQLTable() {
+        if ($.fn.DataTable.isDataTable('#mysql-table')) {
+            $('#mysql-table').DataTable().destroy();
+        }
+
+        mysqlTable = $('#mysql-table').DataTable({
+            scrollY: "400px",
+            scrollX: true,
+            scrollCollapse: true,
+            paging: false,
+            searching: true,
+            ordering: true,
+            info: false,
+            dom: 'lrtip',
+            autoWidth: false,
+            language: {
+                emptyTable: "暫無資料",
+                zeroRecords: "找不到符合的資料"
+            }
+        });
+
+        setTimeout(() => {
+            mysqlTable.columns.adjust().draw();
+        }, 300);
+
+        $('#mysql-search').off('keyup').on('keyup', function () {
+            mysqlTable.search(this.value).draw();
+        });
+    }
+
+    // ========================================= CodeMirror =========================================
+    function isIdentifierChar(ch) {
+        return /[a-z0-9_.]/.test(ch)
+    }
+
+    function getReplaceRange(editor) {
+
+        const cursor = editor.getCursor();
+        const line = editor.getLine(cursor.line);
+
+        let start = cursor.ch;
+
+        while (start > 0 && isIdentifierChar(line[start - 1])) {
+            start--;
+        }
+
+        return {
+            from: CodeMirror.Pos(cursor.line, start),
+            to: cursor
+        };
+    }
+
+    function initSqlEditor() {
+        const textarea = document.getElementById('sqlEditor');
+        var oldEditor = textarea.querySelector('.CodeMirror');
+        if (oldEditor) oldEditor.remove();
+        if (!textarea) return;
+        sqlEditor = CodeMirror.fromTextArea(textarea, {
+            mode: "text/x-mysql",
+            theme: "material",
+            lineNumbers: true,
+            autofocus: true,
+            extraKeys: {
+                "Tab": cm => {
+                    if (cm.state.completionActive) {
+                        cm.state.completionActive.widget.pick();
+                    } else {
+                        cm.showHint({ completeSingle: false });
+                    }
+                },
+                "Ctrl-Space": "autocomplete"
+            }
+        });
+
+        sqlEditor.setSize("100%", "450px");
+
+        sqlEditor.on("inputRead", (cm, change) => {
+            if (change.origin === "+input" && /[a-zA-Z_.]/.test(change.text[0])) {
+                cm.showHint({ completeSingle: false });
+            }
+        });
+
+        registerSqlHint();
+    }
+
+    function registerSqlHint() {
+        CodeMirror.registerHelper("hint", "sql", function (editor) {
+            const range = getReplaceRange(editor);
+            const currentText = editor.getRange(range.from, range.to);
+            const lowerText = currentText.toLowerCase();
+
+            let list = [];
+            const keywords = ["SELECT", "FROM", "WHERE", "JOIN", "LEFT JOIN", "GROUP BY", "ORDER BY", "LIMIT"];
+
+            if (currentText.includes(".")) {
+                const parts = currentText.split(".");
+                const dbName = parts[0];
+                const tableQuery = parts[1].toLowerCase();
+
+                const tables = serverTableMap[dbName] || [];
+
+                const filteredTables = tables.filter(t => t.toLowerCase().includes(tableQuery));
+
+                return {
+                    list: filteredTables,
+                    from: CodeMirror.Pos(range.from.line, range.from.ch + dbName.length + 1),
+                    to: range.to
+                };
+            }
+
+            const dbNames = Object.keys(serverTableMap);
+            const allFirstLevel = [...keywords, ...dbNames];
+
+            list = allFirstLevel.filter(item =>
+                item.toLowerCase().includes(lowerText)
+            );
+
+            return {
+                list: list,
+                from: range.from,
+                to: range.to
+            };
+        });
+    }
+
+    // ========================================= Modal =========================================
+    function showTablesModal(serverName, tables) {
+
+        const list = tables.split(',');
+
+        document.getElementById("tablesContent").innerHTML = `
+            <ul class="list-group">
+                ${list.map(t => `
+                    <li class="list-group-item list-group-item-action"
+                        style="cursor:pointer"
+                        onclick="insertTable('${serverName}','${t}')">
+                        ${t}
+                    </li>
+                `).join('')}
+            </ul>
+        `;
+
+        $('#tablesModal').modal('show');
+    }
+
+    function insertTable(serverName, table) {
+
+        closeModal();
+
+        editor.setValue(`${serverName}.${table}`);
+    }
+
+    function closeModal() {
+        $('#tablesModal').modal('hide');
+    }
+</script>
+
+
+
+<!--benson-->
+<!-- jQuery & DataTables JS -->
+
+
+<script>
+
+   //取的server list
+$(function() {
+    let retryCount = 0; // 記錄重試次數
+    const maxRetries = 2; // 最多重試幾次
+
+    async function loadDataLake() {
+        try {// 1️⃣ 載入 PartialView
+            await fetch("@Url.Action("DataLakePartial","Querysql")")
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("PartialView 載入失敗");
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    document.getElementById("content-area").innerHTML = html;
+                    console.log("PartialView 載入完成");
+                });
+
+
+
+            // 2️⃣ 使用 fetch 取得 JSON 資料
+            const response = await fetch("@Url.Action("GetMtServers","Querysql")", {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log("收到 JSON:", data);
+
+            // ⭐ 判斷沒資料時自動重載
+            if ((!data || data.length === 0) && retryCount < maxRetries) {
+                retryCount++;
+                console.warn(`無資料，正在進行第 ${retryCount} 次重試...`);
+                setTimeout(loadDataLake, 1500);
+                return;
+            }
+
+            // ✅ 資料載入完成，延遲後一次性渲染
+            setTimeout(function() {
+                renderTable(data);
+            }, 100);
+
+        } catch (error) {
+            console.error("發生錯誤:", error);
+
+            if (retryCount < maxRetries) {
+                retryCount++;
+                console.warn(`錯誤重試 ${retryCount}/${maxRetries}`);
+                setTimeout(loadDataLake, 1000);
+            } else {
+                console.error("達到最大重試次數");
+                $("#datalake-table tbody").html("<tr><td colspan='2'>資料載入失敗</td></tr>");
+            }
+        }
+    }
+
+    // ⭐ 獨立的渲染函數
+    function renderTable(data) {
+        console.log("開始渲染表格，資料筆數:", data.length);
+
+        // --- 渲染 thead ---
+        let columns = [
+            { title: "Server Name", width: "50%" },
+            { title: "DL_SOURCE_SERVER", width: "50%" }
+        ];
+
+        let theadHtml = "<tr>";
+        columns.forEach(col => {
+            theadHtml += `<th style="width:${col.width}">${col.title}</th>`;
+        });
+        theadHtml += "</tr>";
+        $("#datalake-table thead").html(theadHtml);
+
+        // --- 渲染 tbody ---
+        let tbodyHtml = "";
+        if (data.length > 0) {
+            data.forEach(s => {
+                tbodyHtml += `<tr>
+                                <td>${s.serverName}</td>
+                                <td>${s.dlSourceServer}</td>
+                              </tr>`;
+            });
+        } else {
+            tbodyHtml = "<tr><td colspan='2' class='text-center'>查無資料</td></tr>";
+        }
+        $("#datalake-table tbody").html(tbodyHtml);
+
+        // ✅ DOM 渲染完成後，再初始化 DataTable
+        setTimeout(function() {
+            initDataLakeTable();
+            console.log("表格渲染完成");
+        }, 150);
+    }
+
+    // 初始化 DataTable
+    function initDataLakeTable() {
+        // 銷毀舊的 DataTable 實例
+        if ($.fn.DataTable.isDataTable('#datalake-table')) {
+            $('#datalake-table').DataTable().destroy();
+        }
+
+        const table = $('#datalake-table').DataTable({
+            scrollY: "500px",
+            scrollX: true,
+            scrollCollapse: true,
+            paging: false,
+            searching: true,
+            ordering: true,
+            info: false,
+            dom: 'lrtip',
+            autoWidth: false,
+            // ⭐ 明確指定欄位寬度
+            columnDefs: [
+                { width: "50%", targets: 0 },
+                { width: "50%", targets: 1 }
+            ],
+            // ⭐ 初始化完成後調整欄位
+            initComplete: function() {
+                console.log("DataTable 初始化完成");
+                var api = this.api();
+
+                // 強制調整欄位寬度
+                setTimeout(function() {
+                    api.columns.adjust().draw(false);
+                    console.log("欄位寬度調整完成");
+                }, 50);
+            }
+        });
+
+        // 綁定搜尋功能
+        $('#datalake-search').off('keyup').on('keyup', function() {
+            table.search(this.value).draw();
+        });
+    }
+
+    // 初始呼叫
+    loadDataLake();
+});
+
+
+    // 執行手動查詢
+    function executedatalakeQuery() {
+        const datalakeQuery = document.getElementById('datalakeEditor').value.trim();
+        const datalakeresultDiv = document.getElementById('datalakemodalResult');
+
+        console.log(datalakeQuery);
+        console.log(datalakeresultDiv);
+
+        if (!datalakeQuery) {
+            datalakeresultDiv.innerHTML = `
+                    <div class="alert alert-warning alert-custom border-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        請輸入 datalake 查詢語句
+                    </div>
+                `;
+            return;
+        }
+
+        //// 顯示載入中
+        //datalakeresultDiv.innerHTML = `
+        //        <div class="text-center py-5">
+        //            <div class="spinner-border text-success" role="status">
+        //                <span class="visually-hidden">執行中...</span>
+        //            </div>
+        //            <p class="mt-3 text-muted">正在執行查詢...</p>
+        //        </div>
+        //    `;
+
+        // 模擬查詢執行
+        setTimeout(() => {
+            console.log(datalakeQuery);
+
+            $.ajax({
+                url: "/Querysql/RunDatalakeQueryByManual",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    sql: datalakeQuery
+                }),
+                success: function (result) {
+                    console.log("success");
+                    displayResults(result);
+                },
+                error: function (err) {
+                    console.log("error");
+                    displayResults(result);
+                }
+            });
+        }, 1000);
+    }
+
+</script>
+
+
+<!--共用下載datatable功能-->
+
+<script>
+
+    // 3. 將這個函數移出來，不要放在 displayResults 裡面！
+    function downloadExcel() {
+        alert("downloadExcel");
+        if (myDataTable) {
+            myDataTable.button('.buttons-excel').trigger();
+        } else {
+            alert("請先查詢資料後再下載");
+        }
+    }
+
+    async function downloadCsv() {
+        const sql = document.getElementById("datalakeEditor").value.trim();
+
+        const res = await fetch("/Querysql/DownloadCsv", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ Sql: sql })
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            alert(err.error);
+            return;
+        }
+
+        // 觸發瀏覽器下載
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `export_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+    }
+
+</script>

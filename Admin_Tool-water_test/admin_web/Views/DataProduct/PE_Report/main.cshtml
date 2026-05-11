@@ -1,0 +1,103 @@
+﻿@using admin_web.Models
+@{
+    List<string> fileContent = ViewBag.FileContent as List<string>;
+    List<FileModel.FileEntry> entries = ViewBag.entries as List<FileModel.FileEntry>;
+}
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <div class="container mt-3">
+        <nav aria-label="breadcrumb">
+            <span>路徑:</span>
+            <ol class="breadcrumb" id="breadcrumb">
+                <!-- Breadcrumb items will be populated here -->
+            </ol>
+        </nav>
+    </div>
+
+    <div id="fileSystemEntries" style="margin-bottom:70px">
+        @Html.Partial("_FileSystemEntries", entries)
+    </div>
+    <div id="excelContent" style="margin-bottom:50px"></div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+@section Scripts {
+    <script type="text/javascript">
+        function navigateTo(path) {
+            const breadcrumb = document.getElementById('breadcrumb');
+            const pathParts = path.split('/').filter(part => part !== '');
+
+            breadcrumb.innerHTML = '';
+
+            let fullPath = '';
+            pathParts.forEach((part, index) => {
+                fullPath += part + (index < pathParts.length - 1 ? '/' : '');
+                if (part.endsWith('.xlsx')) {
+                    breadcrumb.innerHTML += `<li class="breadcrumb-item${index === pathParts.length - 1 ? ' active' : ''}" aria-current="page">
+                        ${index === pathParts.length - 1 ? part : `<a href="javascript:void(0);" id="Download">${part}</a>`}
+                        <span class="d-none" id="filePath">${fullPath}</span>
+                    </li>`;
+                } else {
+                    breadcrumb.innerHTML += `<li class="breadcrumb-item${index === pathParts.length - 1 ? ' active' : ''}" aria-current="page">
+                        ${index === pathParts.length - 1 ? part : `<a href="javascript:void(0);" onclick="navigateTo('${fullPath}'); loadEntries('${fullPath}')">${part}</a>`}
+                        <span class="d-none">${fullPath}</span>
+                    </li>`;
+                }
+            });
+        }
+
+        // 初始化
+        navigateTo('');
+
+        function loadEntries(path) {
+            $.ajax({
+                url: '@Url.Action("GetFileSystemEntries", "DataProduct")',
+                type: 'GET',
+                data: { path: path },
+                contentType: 'application/json; charset=utf-8',
+                success: function (data) {
+                    navigateTo(path)
+                    $('#fileSystemEntries').html(data);
+                    $('#fileSystemEntries').show();
+                    $('#excelContent').hide();
+                },
+                error: function (error) {
+                    console.error('Error fetching file system entries:', error);
+                }
+            });
+        }
+
+        function loadExcel(path) {
+            $.ajax({
+                url: '@Url.Action("DisplayExcel", "DataProduct")',
+                type: 'GET',
+                data: { path: path },
+                success: function (data) {
+                    navigateTo("Output/"+path);
+                    $('#fileSystemEntries').hide();
+                    $('#excelContent').html(data);
+                    $('#fileSystemEntries').hide();
+                    $('#excelContent').show();
+                },
+                error: function (error) {
+                    console.error('Error fetching Excel data:', error);
+                }
+            });
+        }
+    </script>
+}

@@ -1,0 +1,437 @@
+﻿@model ExcelViewModel
+@{
+    ViewData["Title"] = "Ticket系統 自動化";
+    List<string> FileNameList = ViewBag.FileNameList as List<string>;
+    string FileSelect = ViewBag.SelectDate as string;
+    int index = 1;
+}
+<head>
+    <meta charset="utf-8" />
+    <style type="text/css">
+
+        .container {
+            padding: 0 15px;
+        }
+
+        .nav-tabs {
+            white-space: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .nav-item {
+            flex: 0 0 auto;
+        }
+    </style>
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</head>
+
+<body>
+    <h1>Ticket系統 Report </h1>
+
+    <hr />
+
+    <div class="container">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <label class="form-label">Vantage</label>
+                <input id="uploadCSV1" type="file" name="inputFile_Vantage" accept=".csv" class="form-control" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">VT</label>
+                <input id="uploadCSV2" type="file" name="inputFile_VT" accept=".csv" class="form-control" />
+            </div>
+        </div>
+        <br />
+        <div class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <label class="form-label">Moneta</label>
+                <input id="uploadCSV3" type="file" name="inputFile_Moneta" accept=".csv" class="form-control" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">PU</label>
+                <input id="uploadCSV4" type="file" name="inputFile_PU" accept=".csv" class="form-control" />
+            </div>
+        </div>
+        <br />
+        <div class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <label class="form-label">ST</label>
+                <input id="uploadCSV5" type="file" name="inputFile_ST" accept=".csv" class="form-control" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">UM</label>
+                <input id="uploadCSV6" type="file" name="inputFile_UM" accept=".csv" class="form-control" />
+            </div>
+        </div>
+        <br />
+        <div class="mt-4">
+            <button type="submit" id="uploadInput" class="btn btn-primary">重新上傳</button>
+            <div id="uploadInputResult1" class="mt-2"></div>
+        </div>
+    </div>
+
+    <hr />
+
+    <br />
+
+    <div class="d-flex align-items-center">
+        <h3> Ticket 建立日期篩選 (時間一包含，時間二不包含)：</h3>
+        <input type="text" id="time1" class="form-control" placeholder="選擇時間1" style="width: 180px;">
+        <input type="text" id="time2" class="form-control" placeholder="選擇時間2" style="width: 180px;">
+
+    </div>
+
+    <div class="btn-group" role="group" aria-label="Basic example">
+        <button type="submit" id="RunButton" class="btn btn-success">Run</button>
+        <button type="submit" id="Download" class="btn btn-primary" @(FileNameList.Count() > 0 ? "enabled" : "disabled")>Download File</button>
+    </div>
+
+    <h2 id="RunResult"></h2>
+
+    <br />
+
+    <hr />
+    <br />
+    <div style="margin-bottom:50px">
+        @if (FileNameList != null)
+        {
+            <div class="d-flex align-items-center">
+                <h5>資料日期：</h5>
+                <select id="fileSelect" class="form-select" style="width:150px">
+                    @foreach (var item in FileNameList)
+                    {
+                        if (item == FileSelect)
+                        {
+                            <option value="@item" selected>@item</option>
+                        }
+                        else
+                        {
+                            <option value="@item">@item</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="d-flex overflow-auto">
+                <ul class="nav nav-tabs flex-nowrap" id="myTab" role="tablist">
+                    @foreach (var item in Model.Tabs)
+                    {
+                        string classSet = index == 1 ? "nav-link active" : "nav-link";
+                        string ariaControl = index == 1 ? "home" : "contact";
+                        string ariaSelected = index == 1 ? "true" : "false";
+                        <li class="nav-item" role="presentation">
+                            <button class="@classSet" id="@($"id{index}")" data-bs-toggle="tab" data-bs-target="@($"#section{index}")" type="button" role="tab" aria-controls="@ariaControl" aria-selected="@ariaSelected">@item.Name.ToString()</button>
+                        </li>
+                        index++;
+                    }
+                </ul>
+            </div>
+
+            <div class="tab-content" id="myTabContent">
+                @{ index = 1; }
+                @foreach (var item in Model.Tabs)
+                {
+                    <div class="tab-pane fade" id="@($"section{index}")" role="tabpanel" aria-labelledby="@($"id{index}")">
+                        <table id="@(item.DataList.Any() ? "example" : "example1")" class="table table-striped table-bordered nowrap" style="width:100%">
+                            <thead>
+                                <tr>
+                                    @foreach (string Header in item.HeaderList)
+                                    {
+                                        <th>@Header</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (item.Check)
+                                {
+                                    @foreach (var Data in item.DataList)
+                                    {
+                                        <tr>
+                                            @foreach (var item2 in Data)
+                                            {
+                                                <td>@item2</td>
+                                            }
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="8">「@item.Name」資料無生成</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    index++;
+                }
+            </div>
+        }
+        else
+        {
+            <div class="d-flex align-items-center">
+                <h5>無任何資料，請執行工具以產生新資料</h5>
+            </div>
+        }
+
+
+
+    </div>
+
+
+</body>
+
+
+@section Scripts {
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+
+    <script>
+        //顯示EXCEL
+        $(document).ready(function () {
+            showLoading();
+            setTimeout(function () {
+                hideLoading();
+                $('.content').show();
+
+                $('.tab-pane').addClass('show active');
+                $('#myTabContent [id^="section"] #example').DataTable({
+                    responsive: true,
+                    scrollX: true,
+                    pageLength: 100,
+                    ordering: false,
+                });
+                $('.tab-pane').removeClass('show active');
+                $('#myTabContent .tab-pane:first').addClass('show active');
+            }, 1000);
+
+            // 下拉式選單
+            $('#fileSelect').change(function () {
+                var selectedFile = $(this).val();
+                window.location.href = `Ticket_system?Date=${encodeURIComponent(selectedFile)}`;
+            });
+        });
+
+        //上傳
+        $(document).ready(function () {
+            $("#uploadInput").on("click", function () {
+                let folders = ["Vantage", "VT", "Moneta", "PU", "ST", "UM"];
+                let uploadPromises = [];
+                let hasFile = false;
+                let emptyFolders = [];
+                let resultDiv = $("#uploadInputResult1");
+                resultDiv.html(""); // 清空結果
+
+                folders.forEach((folder, index) => {
+                    let fileInput = $(`#uploadCSV${index + 1}`)[0].files[0];
+                    if (fileInput) {
+                        hasFile = true;
+
+                        let formData = new FormData();
+                        formData.append("file", fileInput);
+                        formData.append("path", folder);
+                        formData.append("file_name", fileInput.name);
+                        formData.append("del_all", true);
+
+                        let uploadPromise = $.ajax({
+                            url: '@Url.Action("Upload_6_File", "DataProduct")',
+                            type: 'POST',
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success: function (response) {
+                                resultDiv.append(`<p class="text-success">${response}</p>`);
+                            },
+                            error: function (error) {
+                                resultDiv.append(`<p class="text-danger">${folder} 上傳失敗：${error.responseText}</p>`);
+                            }
+                        });
+
+                        uploadPromises.push(uploadPromise);
+                    } else {
+                        emptyFolders.push(folder);
+                    }
+                });
+
+                if (!hasFile) {
+                    resultDiv.html(`<p class="text-danger">請至少上傳一個檔案</p>`);
+                    return;
+                }
+
+                emptyFolders.forEach((folder) => {
+                    let formData = new FormData();
+                    formData.append("file", "");
+                    formData.append("path", folder);
+                    formData.append("file_name", "");
+                    formData.append("del_all", true);
+
+                    let clearPromise = $.ajax({
+                        url: '@Url.Action("Upload_6_File", "DataProduct")',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (response) {
+                            resultDiv.append(`<p class="text-warning">${response}</p>`);
+                        },
+                        error: function (error) {
+                            resultDiv.append(`<p class="text-danger">${folder} 清空失敗：${error.responseText}</p>`);
+                        }
+                    });
+
+                    uploadPromises.push(clearPromise);
+                });
+
+                Promise.all(uploadPromises)
+                    .then(() => {
+                        resultDiv.append(`<p class="text-primary">所有處理完成</p>`);
+                        console.log("complete");
+                    })
+                    .catch((error) => {
+                        resultDiv.append(`<p class="text-danger">上傳發生錯誤</p>`);
+                        console.log("error");
+                    });
+            });
+        });
+
+        // run python(exe)
+        $(document).ready(function () {
+            $('#RunButton').on('click', function () {
+                showLoading("正在執行");
+                    
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Ticket system 報表',
+                        Remark: '執行工具'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+                    
+
+                var param1 = document.getElementById("time1").value; //$('#time1').val();
+                var param2 = document.getElementById("time2").value; //$('#time2').val();
+
+                console.log(param1);
+                console.log(param2);
+
+                var formData = new FormData();
+                formData.append('tool_path', 'Ticket_system');
+                formData.append('output_path', 'output_file');
+                formData.append('exe_name', "main.exe");
+                formData.append('DeleteAllFile', false);
+                // 傳入參數
+
+                formData.append('param1', param1);
+                formData.append('param2', param2);
+
+                $('#RunButton').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("RunExe_parameter_2", "DataProduct")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        $('#RunButton').prop('disabled', false);
+                        
+                        $('#RunResult').html(`<p class="text-danger">report complete</p>`);
+                        hideLoading();
+                        location.reload(true); // 重新整理
+                    },
+                    error: function (error) {
+
+                        $('#RunButton').prop('disabled', false);
+                        $('#RunResult').html(`<p class="text-danger">${error.responseText}</p>`);
+                        hideLoading();
+                    }
+                });
+            });
+        });
+
+
+
+        // 初始化開始時間選擇器 (#time)
+        flatpickr('#time1', {
+            enableTime: true,        // 啟用時間選擇
+            enableSeconds: true,     // 啟用秒數選擇
+            time_24hr: true,         // 使用 24 小時制
+            dateFormat: "Y-m-d H:i:S", // 設置日期格式，包含秒
+        });
+
+        // 初始化結束時間選擇器 (#time2)
+        flatpickr('#time2', {
+            enableTime: true,        // 啟用時間選擇
+            enableSeconds: true,     // 啟用秒數選擇
+            time_24hr: true,         // 使用 24 小時制
+            dateFormat: "Y-m-d H:i:S", // 設置日期格式，包含秒
+        });
+
+
+        //download
+        $(document).ready(function () {
+            var output_path = "Ticket_system\\output";
+            var FileSelect = '@FileSelect';
+
+            $('#Download').on('click', function () {
+                /*
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'download ',
+                        Remark: '下載檔案'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+                */
+                var fileName = "ticket_system_" + FileSelect + ".xlsx";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                    '?output_path=' + encodeURIComponent(output_path) +
+                                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+        });
+    </script>
+
+    @* Bootstrap 5 *@
+    <!-- CSS only -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+
+    <!-- JavaScript Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-/bQdsTh/da6pkI1MST/rWKFNjaCP5gBSY4sEBT38Q/9RBh9AH40zEOg7Hlq2THRZ" crossorigin="anonymous"></script>
+}

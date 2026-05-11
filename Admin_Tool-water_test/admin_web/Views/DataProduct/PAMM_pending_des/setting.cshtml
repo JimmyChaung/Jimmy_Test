@@ -1,0 +1,299 @@
+﻿@model List<admin_web.Models.DataProduct.PAMM_pending_desModel.PmRecord>;
+
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        .table-wrapper {
+            overflow-x: auto; /* 啟用水平捲動 */
+            width: 100%; /* 確保容器佔滿父容器的寬度 */
+        }
+
+        .dataTables_wrapper .dataTables_paginate {
+            margin-top: 10px; /* 設置分頁與表格間的距離 */
+        }
+    </style>
+</head>
+
+<body>
+    <h1>@ViewData["Title"] - PM 設置</h1>
+    <!-- 返回主頁 -->
+    <div class="btn-group" role="group" aria-label="Basic example">
+        <a href="@Url.Action("PAMM_pending_des", "DataProduct")"
+           class="btn btn-outline-primary" role="button">返回工具主頁</a>
+    </div>
+
+    <!-- 編輯用表格 -->
+    <table id="PmTable" class="table table-striped">
+        <thead>
+            <tr>
+                <th style="width: 15%">sql_na</th>
+                <th style="width: 15%">Host</th>
+                <th style="width: 15%">User</th>
+                <th style="width: 15%">Password</th>
+                <th style="width: 25%">mt_server</th>
+                <th style="width: 15%">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var record in Model)
+            {
+                <tr>
+                    <td>
+                        <form class="d-inline">
+                            <input type="text" data-original-sql_na="@record.sql_na" value="@record.sql_na" class="form-control sql_na-edit" readonly />
+                        </form>
+                    </td>
+                    <td>
+                        <form class="d-inline">
+                            <input type="text" data-original-host="@record.host" value="@record.host" class="form-control host-edit" readonly />
+                        </form>
+                    </td>
+                    <td>
+                        <form class="d-inline">
+                            <input type="text" data-original-user="@record.user" value="@record.user" class="form-control user-edit" readonly />
+                        </form>
+                    </td>
+                    <td>
+                        <form class="d-inline">
+                            <input type="text" data-original-password="@record.password" value="@record.password" class="form-control password-edit" readonly />
+                        </form>
+                    </td>
+                    <td>
+                        <form class="d-inline">
+                            <input type="text" data-original-mt_server="@record.mt_server" value="@record.mt_server" class="form-control mt_server-edit" readonly />
+                        </form>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-primary btn-sm edit-btn">Edit</button>
+                        <button type="button" class="btn btn-danger btn-sm delete-btn">Delete</button>
+                        <button type="button" class="btn btn-success btn-sm update-btn d-none">Update</button>
+                        <button type="button" class="btn btn-secondary btn-sm cancel-btn d-none">Cancel</button>
+                    </td>
+                </tr>
+            }
+            <tr>
+                <td>
+                    <form class="d-inline">
+                        <input type="text" name="sql_na" class="form-control sql_na-add" required>
+                    </form>
+                </td>
+                <td>
+                    <form class="d-inline">
+                        <input type="text" name="host" class="form-control host-add" required>
+                    </form>
+                </td>
+                <td>
+                    <form class="d-inline">
+                        <input type="text" name="user" class="form-control user-add" required>
+                    </form>
+                </td>
+                <td>
+                    <form class="d-inline">
+                        <input type="text" name="password" class="form-control password-add" required>
+                    </form>
+                </td>
+                <td>
+                    <form class="d-inline">
+                        <input type="text" name="mt_server" class="form-control mt_server-add" required>
+                    </form>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-primary btn-sm add-btn">Add</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+
+@section Scripts {
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+
+    <script>
+        $(document).ready(function () {
+            $('.content').show();
+        });
+
+        $(document).ready(function () {
+            // 刷新
+            function refreshTable() {
+                location.reload()
+            }
+
+            // 新增
+            $('.add-btn').click(function () {
+                var row = $(this).closest('tr');
+                var sql_na = row.find('.sql_na-add').val();
+                var host = row.find('.host-add').val();
+                var user = row.find('.user-add').val();
+                var password = row.find('.password-add').val();
+                var mt_server = row.find('.mt_server-add').val();
+                $.ajax({
+                    url: '/DataProduct/PAMM_pending_des_PmRecords_Add',
+                    type: 'POST',
+                    data: { sql_na: sql_na, host: host, user: user, password: password, mt_server: mt_server },
+                    success: function (response) {
+                        if (response.success) {
+                            refreshTable(); // 如果操作成功，刷新表格
+                        } else {
+                            alert(response.message); // 如果操作失敗，顯示錯誤訊息
+                        }
+                    }
+                });
+            });
+
+            // 編輯
+            $('.edit-btn').click(function () {
+                var row = $(this).closest('tr');
+                var sql_naInput = row.find('.sql_na-add');
+                var hostInput = row.find('.host-add');
+                var userInput = row.find('.user-add');
+                var passwordInput = row.find('.password-add');
+                var mt_serverInput = row.find('.mt_server-add');
+
+                sql_naInput.data('original-sql_na', sql_naInput.val()); // 保存原始值
+                hostInput.data('original-host', hostInput.val()); // 保存原始值
+                userInput.data('original-user', userInput.val()); // 保存原始值
+                passwordInput.data('original-password', passwordInput.val()); // 保存原始值
+                mt_serverInput.data('original-mt_server', mt_serverInput.val()); // 保存原始值
+
+                sql_naInput.prop('readonly', false);
+                hostInput.prop('readonly', false);
+                userInput.prop('readonly', false);
+                passwordInput.prop('readonly', false);
+                mt_serverInput.prop('readonly', false);
+
+                row.find('.sql_na-edit ,.host-edit, .user-edit, .password-edit, .mt_server-edit').prop('readonly', false);
+                $(this).addClass('d-none');
+                row.find('.delete-btn').addClass('d-none');
+                row.find('.update-btn, .cancel-btn').removeClass('d-none');
+            });
+
+            // 取消
+            $('.cancel-btn').click(function () {
+                var row = $(this).closest('tr');
+                var sql_naInput = row.find('.sql_na-edit');
+                var hostInput = row.find('.host-edit');
+                var userInput = row.find('.user-edit');
+                var passwordInput = row.find('.password-edit');
+                var mt_serverInput = row.find('.mt_server-edit');
+
+                sql_naInput.prop('readonly', true);
+                hostInput.prop('readonly', true);
+                userInput.prop('readonly', true);
+                passwordInput.prop('readonly', true);
+                mt_serverInput.prop('readonly', true);
+
+
+                row.find('.sql_na-edit').prop('readonly', true);
+                row.find('.sql_na-edit').val(row.find('.sql_na-edit').attr('value')); // reset
+                row.find('.host-edit').prop('readonly', true);
+                row.find('.host-edit').val(row.find('.host-edit').attr('value')); // reset
+                row.find('.user-edit').prop('readonly', true);
+                row.find('.user-edit').val(row.find('.user-edit').attr('value')); // reset
+                row.find('.password-edit').prop('readonly', true);
+                row.find('.password-edit').val(row.find('.password-edit').attr('value')); // reset
+                row.find('.mt_server-edit').prop('readonly', true);
+                row.find('.mt_server-edit').val(row.find('.mt_server-edit').attr('value')); // reset
+                row.find('.edit-btn, .delete-btn').removeClass('d-none');
+                row.find('.update-btn, .cancel-btn').addClass('d-none');
+            });
+
+            // 更新
+            $('.update-btn').click(function () {
+                var row = $(this).closest('tr');
+
+                var sql_naInput = row.find('.sql_na-edit');
+                var new_sql_na = sql_naInput.val();
+
+                var hostInput = row.find('.host-edit');
+                var new_host = hostInput.val();
+
+                var userInput = row.find('.user-edit');
+                var new_user = userInput.val();
+
+                var passwordInput = row.find('.password-edit');
+                var new_password = passwordInput.val();
+
+                var mt_serverInput = row.find('.mt_server-edit');
+                var new_mt_server = mt_serverInput.val();
+
+                var original_sql_na = sql_naInput.data('original-sql_na');
+                var original_host = hostInput.data('original-host');
+                var original_user = userInput.data('original-user');
+                var original_password = passwordInput.data('original-password');
+                var original_mt_server = mt_serverInput.data('original-mt_server');
+
+                $.ajax({
+                    url: '/DataProduct/PAMM_pending_des_PmRecords_Edit',
+                    type: 'POST',
+                    data: {
+                        sql_naBefore: original_sql_na,
+                        sql_naAfter: new_sql_na,
+                        hostBefore: original_host,
+                        hostAfter: new_host,
+                        userBefore: original_user,
+                        userAfter: new_user,
+                        passwordBefore: original_password,
+                        passwordAfter: new_password,
+                        mt_serverBefore: original_mt_server,
+                        mt_serverAfter: new_mt_server
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            refreshTable(); // 如果操作成功，刷新表格
+                        } else {
+                            alert(response.message); // 如果操作失敗，顯示錯誤訊息
+                        }
+                    }
+                });
+            });
+
+            // 刪除
+            $('.delete-btn').click(function () {
+                var row = $(this).closest('tr');
+                var sql_na = row.find('.sql_na-edit').val();
+                var host = row.find('.host-edit').val();
+                var user = row.find('.user-edit').val();
+                var password = row.find('.password-edit').val();
+                var mt_server = row.find('.mt_server-edit').val();
+
+
+                if (confirm("您確定要刪除該設置嗎？\n" +
+                    "sql_na: " + sql_na + "\n" +
+                    "host: " + host + "\n" +
+                    "user: " + user + "\n" +
+                    "password: " + password + "\n" +
+                    "mt_server: " + mt_server)) {
+                    $.ajax({
+                        url: '/DataProduct/PAMM_pending_des_PmRecords_Delete',
+                        type: 'POST',
+                        data: { sql_na: sql_na, host: host, user: user, password: password, mt_server: mt_server },
+                        success: function (response) {
+                            if (response.success) {
+                                refreshTable(); // 如果操作成功，刷新表格
+                            } else {
+                                alert(response.message); // 如果操作失敗，顯示錯誤訊息
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+    </script>
+}

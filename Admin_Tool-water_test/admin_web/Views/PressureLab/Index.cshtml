@@ -1,0 +1,469 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{ }
+
+<link rel="stylesheet" href="~/css/trading-form.css" />
+
+<div class="page-header">
+    <div class="header-icon">🧪</div>
+    <div class="header-text">
+        <h1>PRESSURE LAB</h1>
+        <p>壓力測試工具</p>
+    </div>
+</div>
+
+<div class="form-wrap">
+
+    <!-- 切換按鈕 -->
+    <div class="tab-group">
+        <button class="tab-btn active" onclick="loadPartial('Dtress_testone_Partial', this)">
+            批量創帳號和入金
+        </button>
+        <button class="tab-btn" onclick="loadPartial('Dtress_testtwo_Partial', this)">
+            壓力測試
+        </button>
+        <button class="tab-btn" onclick="loadPartial('Dtress_testreport_Partial', this)">
+            結果
+        </button>
+    </div>
+
+    <!-- partial render 區域 -->
+    <div id="content-area">
+        <div class="empty-state">
+            <span class="empty-icon">⚙</span>
+            <p>請選擇查詢來源</p>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .tab-group {
+        display: flex;
+        gap: 8px;
+    }
+
+    .tab-btn {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.82rem;
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text-dim);
+        cursor: pointer;
+        transition: all 0.2s;
+        letter-spacing: 0.04em;
+    }
+
+    .tab-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .tab-btn.active {
+        background: var(--accent-dim);
+        border-color: var(--accent);
+        color: var(--accent);
+        font-weight: 600;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        gap: 12px;
+        color: var(--text-dim);
+    }
+
+    .empty-icon {
+        font-size: 2rem;
+        opacity: 0.4;
+    }
+
+    .empty-state p {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.85rem;
+        letter-spacing: 0.06em;
+    }
+</style>
+
+<script>
+    // ⭐ Razor 先把 URL 存成 JS 變數，外部 .js 也能直接用
+    const getMtServersUrl = '@Url.Action("GetMtServers", "PressureLab")';
+    const getSpecifyServerGroupUrl = '@Url.Action("GetSpecifyServerGroups", "PressureLab")';
+    const getCreateAccountUrl = '@Url.Action("Pressure_post_from", "PressureLab")';
+    const getDatabaseLogUrl = '@Url.Action("GetDBLogRecord", "PressureLab")';
+    const deleteRecrodUrl = '@Url.Action("DeletSpecifyLog", "PressureLab")';
+    let tt,ttt;
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    // 切換 Partial
+    async function loadPartial(name, btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        try {
+            const res = await fetch(`/PressureLab/${name}`)
+            const html = await res.text();
+
+            const container = document.getElementById("content-area");
+            container.innerHTML = html;
+            container.dataset.currentPage = name;
+
+            if (name === 'Dtress_testone_Partial' || name === 'Dtress_testtwo_Partial') {
+                await initTradingForm();
+            } else {
+                await loadReportTable();
+            }
+        } catch (error) {
+            console.error(`載入頁面失敗 : ${error}`);
+        }
+    }
+
+    // 填入 server_list
+    async function fillServerList() {
+        const select = document.getElementById('server_list');
+        if (!select) return; // 這個 partial 沒有 server_list 就跳過
+
+        try {
+            const response = await fetch(getMtServersUrl, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) throw new Error(`HTTP error status: ${response.status}`);
+
+            const data = await response.json();
+            select.innerHTML = '<option value="ALL">-- ALL --</option>';
+            data.forEach(s => {
+                const option = document.createElement('option');
+                option.value = s;
+                option.textContent = s;
+                select.appendChild(option);
+            });
+
+            console.log(`server_list 填入完成，共 ${data.length} 筆`);
+
+        } catch (error) {
+            console.error('fillServerList 失敗:', error);
+        }
+    }
+
+    // 填入執行紀錄
+    async function executeRecord() {
+        const outputTable = document.getElementById("taskTable");
+
+        const response = await fetch(getDatabaseLogUrl, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            console.error(`executeRecord error, status: ${response.status}`);
+            return;
+        }
+
+        const data = await response.json();
+
+        if (!data || data.length === 0) {
+            outputTable.innerHTML = `<div class="empty-state"><p>目前沒有執行紀錄</p></div>`;
+            return;
+        }
+
+        const columns = Object.keys(data[0]).filter(f => f !=='IsRecordExist');
+        const tableHeader = [...columns, 'Download', 'ACTION'];
+        
+        const rows = data.map(row => {
+            const canDelete = row.IsRecordExist;
+            const cells = columns.map(col => {
+                const val = row[col];
+
+                if (col === 'STATUS') {
+                    const statusMap = {
+                        'Success': 'label label-success',
+                        'Running': 'label label-warning',
+                        'Failed': 'label label-danger'
+                    };
+                    const cls = statusMap[val] ?? 'label';
+                    return `<td><span class="${cls}">${val ?? '-'}</span></td>`;
+                }
+                if (col === 'START_TIME' || col === 'END_TIME') {
+                    return `<td>${val ? new Date(val).toLocaleString('zh-TW') : '-'}</td>`;
+                }
+                if (col === 'IsRecordExist') return;
+
+                return `<td>${val ?? '-'}</td>`;
+
+            }).join('');
+
+            const actionCell = `
+                <td>
+                     <button class="btn btn-primary btn-xs download-btn" data-row-id=${row.ID} title="Download Report"><i class="bi bi-download"></i></button>
+                </td>
+                <td>
+                    <button class="btn ${canDelete ? 'btn-danger':'btn-secondary'} btn-xs delete-btn" ${canDelete ? '':'disabled'} data-row-id=${row.ID}>DELETE</button>
+                </td>
+            `;
+
+            return `<tr>${cells}${actionCell}`;
+        }).join('');
+
+
+        outputTable.innerHTML = `
+            <table class="report-table">
+                <thead>
+                    <tr>${tableHeader.map(col => `<th>${col}</th>`).join('')}</tr>
+                </thead>
+                <tbody>${rows ?? `<tr><td colspan="100" style="text-align: center;">暫無資料</td></tr>`}</tbody>
+            </table>
+        `;
+    }
+
+    async function initTradingForm() {
+        await fillServerList();
+        const executeBtn = document.getElementById("execute_btn");
+        if (!executeBtn) return;
+        executeBtn.replaceWith(executeBtn.cloneNode(true));
+        const newBtn = document.getElementById("execute_btn");
+        newBtn.addEventListener('click', async function () {
+            const serverName = document.getElementById("server_list").value;
+            const group = document.getElementById("group_list").value;
+            const volume = parseInt(document.getElementById("login_value").value);
+            const leverage = parseInt(document.getElementById("leverage_value").value);
+            const balance = document.getElementById("deposit_value").value;
+            const comment = document.getElementById("comment_value").value;
+            const currentPage = document.getElementById("content-area").dataset.currentPage;
+            const type = (currentPage === 'Dtress_testone_Partial' ? 'EA' : 'Manager');
+            // order symbols
+            const symbol_value = document.getElementById("symbol_list").value;
+            const lots_value = document.getElementById("lots_value").value;
+            const volume_value = document.getElementById("volume_value").value;
+            const price_value = document.getElementById("price_value").value || 0;
+            const open_order_comment = document.getElementById("open_order_value").value;
+            const tp_sl_check = document.getElementById("tp_sl_check").checked;
+            const tp_sl_set = document.querySelector('input[name="tp_sl_set"]:checked').value;
+            const tp_value = document.getElementById("tp_value").value||0;
+            const sl_value = document.getElementById("sl_value").value||0;
+
+            //紅線標準
+            // ── 壓測標準 ──────────────────────────────
+            const standard_mode = document.querySelector('input[name="standard_set"]:checked').value;
+            const cpu_value = document.getElementById('cpu_value').value;
+            const memory_value = document.getElementById('memory_value').value;
+            const disk_value = document.getElementById('disk_value').value;
+            const serverhour_value = document.getElementById('serverhour_value').value;
+
+            const stressPayload = standard_mode === 'standard_value'
+                ? {
+                    STANDARD_MODE: standard_mode,
+                    CPU_VALUE: cpu_value,
+                    MEMORY_VALUE: memory_value,
+                    DISK_VALUE: disk_value,
+                    SERVER_HOUR: '',
+                }
+                : {
+                    STANDARD_MODE: standard_mode,
+                    CPU_VALUE: '',
+                    MEMORY_VALUE: '',
+                    DISK_VALUE: '',
+                    SERVER_HOUR: serverhour_value,
+                };
+
+            console.log(type);
+            console.log(`${serverName}、${group}、${volume}、${leverage}、${balance}、${comment}`);
+            console.log({
+                symbol_value,
+                lots_value,
+                volume_value,
+                price_value,
+                open_order_comment,
+                tp_sl_check,
+                tp_sl_set,
+                tp_value,
+                sl_value,
+            });
+
+
+            if (!serverName || !group) {
+                this.textContent = "請先選擇伺服器與組別";
+                await sleep(2000);
+                this.textContent = "▶ Execute";
+                return;
+            }
+
+            this.disabled = true;
+            this.textContent = "⏳ 執行中...";
+
+            try {
+                const response = await fetch(getCreateAccountUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        serverName,
+                        group,
+                        volume,
+                        leverage,
+                        balance,
+                        comment,
+                        type,
+                        // 後端key名稱: 前端變數
+                        ORDER_SYMBOL: symbol_value,
+                        ORDER__LOTS: lots_value,
+                        ORDER__VOLUME: volume_value,
+                        ORDER__PRICE: price_value,
+                        OPEN_ORDER_COMMENT: open_order_comment,
+                        ORDER_CHECK_TP_SL: tp_sl_check,
+                        ORDER_MODEL_TYPE: tp_sl_set,
+                        ORDER_TP_VALUE: tp_value,
+                        ORDER_SL_VALUE: sl_value,
+                        ...stressPayload,
+
+                    })
+                });
+
+                const res = await response.json();
+                console.log(res);
+                ttt = res;
+            } catch (error) {
+                console.error('function createAccount error MSG : ', error);
+            } finally {
+                this.disabled = false;
+                this.textContent = "▶ Execute";
+            }
+        })
+
+
+        // 選好指定 Server 取得所有 Group
+        document.getElementById('server_list').addEventListener('change', async function () {
+            const groupList = document.getElementById("group_list");
+            const serverName = document.getElementById('server_list').value;
+            const controller = new AbortController();
+            const symbolList = document.getElementById("symbol_list");
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+            if (!serverName) {
+                groupList.innerHTML = "<option value=''>-- 請先選擇伺服器 --</option>";
+                return;
+            }
+
+            groupList.innerHTML = "<option value=''>-- 載入中 --</option>";
+            symbolList.innerHTML = "<option value=''>-- 載入中 --</option>";
+            try {
+                const response = await fetch(getSpecifyServerGroupUrl, {
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ serverName })
+                });
+
+                if (!response.ok) throw new Error('Http error status : ', response.status);
+                const data = await response.json();
+
+                const groups = data.serverGroup
+                    ? data.serverGroup.split(",").map(g => g.trim()).filter(Boolean) : [];
+                const symbols = data.serverSymbol ? data.serverSymbol.split(",").map(s => s.trim()).filter(Boolean) : [];
+
+                if (groups.length === 0) {
+                    groupList.innerHTML = "<option>獲取組別發生錯誤</option>";
+                    symbolList.innerHTML = "<option>獲取商品發生錯誤</option>";
+                    return;
+                }
+
+                groupList.innerHTML = '';
+                symbolList.innerHTML = '';
+                groups.forEach(g => {
+                    const option = document.createElement('option');
+                    option.value = g;
+                    option.textContent = g;
+                    groupList.appendChild(option);
+                })
+                symbols.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s;
+                    option.textContent = s;
+                    symbolList.appendChild(option);
+                })
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    groupList.innerHTML = "<option value=''>連接逾時, 請檢查伺服器</option>";
+                } else {
+                    groupList.innerHTML = "<option value=''>發生錯誤, 請檢查伺服器</option>";
+                    console.error("function fillGroupList :", error);
+                }
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        })
+    }
+
+    async function loadReportTable() {
+        await executeRecord();
+
+        const downloadButtons = document.querySelectorAll('.download-btn');
+        // 下載紀錄
+        downloadButtons.forEach(btn => {
+            btn.addEventListener('click', async function (e) {
+                const targetId = this.dataset.rowId;
+
+                try {
+                    const response = await fetch(`/PressureLab/DownloadDocxFile?Id=${targetId}`, {
+                        method: 'GET'
+                    });
+                    if (!response.ok) {
+                        const errorMsg = await response.text();
+                        console.log("Function loadReportTable Error :", errorMsg);
+                        return;
+                    }
+
+                    const blob = await response.blob();
+
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = `Report_${targetId}.docx`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(downloadUrl);
+                } catch (error) {
+                    console.error(`Function loadReportTable Error : `, error);
+                }
+            })
+        });
+
+        const deleteButtons = document.querySelectorAll(".delete-btn");
+        // 刪除紀錄
+        deleteButtons.forEach(btn => {
+            btn.addEventListener('click', async function (e) {
+                const targetId = this.dataset.rowId;
+
+                if (!targetId) return;
+                if (!confirm(`確定要刪除 ID : ${targetId} 的紀錄嗎?`)) return;
+
+                try {
+                    const response = await fetch(deleteRecrodUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(parseInt(targetId))
+                    });
+
+                    if (response.ok) {
+                        const res = await response.json();
+                        console.log("Delete success:", res);
+                        await loadReportTable();
+                    } else {
+                        console.error(`Delete failed, status: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error(`Delete error:`, error);
+                }
+            });
+        });
+    }
+</script>

@@ -1,0 +1,367 @@
+﻿@{
+    List<string> fileContent = ViewBag.FileContent as List<string>;
+    string FileName = ViewBag.FileName as string;
+}
+
+<style>
+    .sk-chase {
+        width: 30px;
+        height: 30px;
+        position: relative;
+        z-index: 9999;
+        animation: sk-chase 2.5s infinite linear both;
+    }
+
+    .sk-chase-dot {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 9999;
+        animation: sk-chase-dot 2.0s infinite ease-in-out both;
+    }
+
+    .sk-chase-dot:before {
+      content: '';
+      display: block;
+      width: 25%;
+      height: 25%;
+      background-color: #0094ff;
+      border-radius: 100%;
+      animation: sk-chase-dot-before 2.0s infinite ease-in-out both;
+    }
+
+    .sk-chase-dot:nth-child(1) { animation-delay: -1.1s; }
+    .sk-chase-dot:nth-child(2) { animation-delay: -1.0s; }
+    .sk-chase-dot:nth-child(3) { animation-delay: -0.9s; }
+    .sk-chase-dot:nth-child(4) { animation-delay: -0.8s; }
+    .sk-chase-dot:nth-child(5) { animation-delay: -0.7s; }
+    .sk-chase-dot:nth-child(6) { animation-delay: -0.6s; }
+    .sk-chase-dot:nth-child(1):before { animation-delay: -1.1s; }
+    .sk-chase-dot:nth-child(2):before { animation-delay: -1.0s; }
+    .sk-chase-dot:nth-child(3):before { animation-delay: -0.9s; }
+    .sk-chase-dot:nth-child(4):before { animation-delay: -0.8s; }
+    .sk-chase-dot:nth-child(5):before { animation-delay: -0.7s; }
+    .sk-chase-dot:nth-child(6):before { animation-delay: -0.6s; }
+
+    @@keyframes sk-chase {
+      100% { transform: rotate(360deg); }
+    }
+
+    @@keyframes sk-chase-dot {
+      80%, 100% { transform: rotate(360deg); }
+    }
+
+    @@keyframes sk-chase-dot-before {
+      50% {
+        transform: scale(0.4);
+      } 100%, 0% {
+        transform: scale(1.0);
+      }
+    }
+}
+</style>
+
+
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spinkit/1.2.5/spinkit.min.css">
+</head>
+
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <hr>
+
+    <h4>請先選擇檔案再點擊Upload</h4>
+    <h4>Input File(.xlsx) 原始資料</h4>
+
+    <div class="form-group d-flex align-items-center">
+        <input id="inputFile" type="file" name="inputFile" accept=".xlsx" class="form-control me-2" style="max-width: 600px;" />
+        <button type="submit" id="uploadInput" class="btn btn-primary">Upload</button>
+    </div>
+    <div id="uploadInputResult1"></div>
+
+    <h4>Server File(.xlsx) 伺服器設定檔資料</h4>
+    <div class="form-group d-flex align-items-center">
+        <input id="serverFile" type="file" name="serverFile" accept=".xlsx" class="form-control me-2" style="max-width: 600px;" />
+        <button type="submit" id="uploadserver" class="btn btn-primary">Upload</button>
+    </div>
+    <div id="uploadInputResult2"></div>
+
+    <div class="mb-3">
+        <label for="input1" class="form-label">時間範圍 1</label>
+        <input type="text" class="form-control" id="input1" name="param1" placeholder="請輸入搜尋的時間1 (如:2024-02-04 00:00:00)" required style="max-width: 600px;">
+    </div>
+    <div class="mb-3">
+        <label for="input2" class="form-label">時間範圍 2</label>
+        <input type="text" class="form-control" id="input2" name="param2" placeholder="請輸入搜尋的時間2 (如:2024-02-05 23:59:59)" required style="max-width: 600px;">
+    </div>
+    <div class="mb-3">
+        <label for="input3" class="form-label">manager的login</label>
+        <input type="text" class="form-control" id="input3" name="param3" placeholder="請輸入manager的login (如:1000000211)" required style="max-width: 600px;">
+    </div>
+
+    <hr>
+
+    <div class="btn-group" role="group" aria-label="Basic example">
+        <button type="submit" id="RunButton" class="btn btn-success">Run</button>
+
+    </div>
+
+    <div class="btn-group" role="group" aria-label="Basic example">
+        <button type="submit" id="RunButton2" class="btn btn-success">Run (for Moneta)</button>
+    </div>
+
+    <div id="RunResult" style="display:none;">
+        <div class="sk-chase">
+            <div class="sk-chase-dot"></div>
+            <div class="sk-chase-dot"></div>
+            <div class="sk-chase-dot"></div>
+            <div class="sk-chase-dot"></div>
+            <div class="sk-chase-dot"></div>
+            <div class="sk-chase-dot"></div>
+        </div>
+        <p>正在執行工具</p>
+    </div>
+
+    <button type="submit" id="Download" class="btn btn-primary" @(FileName != null ? "enabled" : "disabled")>Download File</button>
+    <h4> 上述資料填妥，點擊Run執行，執行完畢後Download  </h4>
+    <h2 id="Download"></h2>
+
+    <hr>
+
+
+</body>
+
+
+@section Scripts{ 
+    <script>
+        // input file upload
+        $(document).ready(function () {
+            $('#uploadInput').on('click', function () {
+                var formData = new FormData();
+                var fileInput = document.getElementById('inputFile');
+                formData.append('file', fileInput.files[0]);
+                formData.append('del_all', true);
+                formData.append('path', 'Pelican Month Fee\\input_file');
+
+                $.ajax({
+                    url: '@Url.Action("UploadFile", "Universal")', // 呼叫Controller
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        $('#uploadInputResult1').html(`<p>${response}</p>`);
+                    },
+                    error: function (error) {
+                        $('#uploadInputResult1').html(`<p class="text-danger">${error.responseText}</p>`);
+                    }
+                });
+            });
+        });
+        //server setting upload
+        $(document).ready(function () {
+            $('#uploadserver').on('click', function () {
+                var formData = new FormData();
+                var fileInput = document.getElementById('serverFile');
+                formData.append('file', fileInput.files[0]);
+                formData.append('del_all', true);
+                formData.append('path', 'Pelican Month Fee\\server_setting');
+
+                $.ajax({
+                    url: '@Url.Action("UploadFile", "Universal")', // 呼叫Controller
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        $('#uploadInputResult2').html(`<p>${response}</p>`);
+                    },
+                    error: function (error) {
+                        $('#uploadInputResult2').html(`<p class="text-danger">${error.responseText}</p>`);
+                    }
+                });
+            });
+        });
+
+        // run python(exe)
+        $(document).ready(function () {
+            $('#RunButton').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Pelican 每月帳單比對',
+                        Remark: '執行工具'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                $('#RunResult').show()
+
+                var param1 = $('#input1').val();
+                var param2 = $('#input2').val();
+                var param3 = $('#input3').val();
+
+                var formData = new FormData();
+                formData.append('tool_path', 'Pelican Month Fee');
+                formData.append('output_path', 'output_file');
+                formData.append('exe_name', "main.exe");
+                formData.append('DeleteAllFile', true);
+                // 傳入參數
+
+                formData.append('param1', param1);
+                formData.append('param2', param2);
+                formData.append('param3', param3);
+
+
+                //console.log(param1);
+
+                $('#RunButton2').prop('disabled', true);
+                $('#RunButton').prop('disabled', true);
+                $('#Download').prop('disabled', true);
+                $('#uploadInput').prop('disabled', true);
+                $('#inputFile').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("RunExe_parameter", "DataProduct")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        $('#RunResult').html(`<p>${response}</p>`);
+                        $('#RunButton2').prop('disabled', false);
+                        $('#RunButton').prop('disabled', false);
+                        $('#Download').prop('disabled', false);
+                        $('#uploadInput').prop('disabled', false);
+                        $('#inputFile').prop('disabled', false);
+                        location.reload(true); // 重新整理
+                    },
+                    error: function (error) {
+                        $('#RunButton2').prop('disabled', false);
+                        $('#RunButton').prop('disabled', false);
+                        $('#Download').prop('disabled', @Html.Raw(Json.Serialize(fileContent)) == null ? true : false);
+                        $('#Setting').prop('disabled', false);
+                        $('#uploadInput').prop('disabled', false);
+                        $('#inputFile').prop('disabled', false);
+                        $('#RunResult').html(`<p class="text-danger">${error.responseText}</p>`);
+                    }
+                });
+            });
+        });
+
+        $(document).ready(function () {
+            $('#RunButton2').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Pelican 每月帳單比對',
+                        Remark: '執行工具'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                $('#RunResult').show()
+
+                var param1 = $('#input1').val();
+                var param2 = $('#input2').val();
+                var param3 = $('#input3').val();
+
+                var formData = new FormData();
+                formData.append('tool_path', 'Pelican Month Fee');
+                formData.append('output_path', 'output_file');
+                formData.append('exe_name', "main_mon.exe");
+                formData.append('DeleteAllFile', true);
+                // 傳入參數
+
+                formData.append('param1', param1);
+                formData.append('param2', param2);
+                formData.append('param3', param3);
+
+
+                //console.log(param1);
+
+                $('#RunButton').prop('disabled', true);
+                $('#RunButton2').prop('disabled', true);
+                $('#Download').prop('disabled', true);
+                $('#uploadInput').prop('disabled', true);
+                $('#inputFile').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("RunExe_parameter", "DataProduct")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        $('#RunResult').html(`<p>${response}</p>`);
+                        $('#RunButton').prop('disabled', false);
+                        $('#RunButton2').prop('disabled', false);
+                        $('#Download').prop('disabled', false);
+                        $('#uploadInput').prop('disabled', false);
+                        $('#inputFile').prop('disabled', false);
+                        location.reload(true); // 重新整理
+                    },
+                    error: function (error) {
+                        $('#RunButton').prop('disabled', false);
+                        $('#RunButton2').prop('disabled', false);
+                        $('#Download').prop('disabled', @Html.Raw(Json.Serialize(fileContent)) == null ? true : false);
+                        $('#Setting').prop('disabled', false);
+                        $('#uploadInput').prop('disabled', false);
+                        $('#inputFile').prop('disabled', false);
+                        $('#RunResult').html(`<p class="text-danger">${error.responseText}</p>`);
+                    }
+                });
+            });
+        });
+
+        // download
+        $(document).ready(function () {
+            var output_path = "Pelican Month Fee\\output_file";
+
+            $('#Download').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Pelican 每月帳單比對',
+                        Remark: '下載檔案'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var fileName = '@FileName';
+
+                console.log(fileName);
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                    '?output_path=' + encodeURIComponent(output_path) +
+                                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+        });
+
+    </script>
+
+
+}

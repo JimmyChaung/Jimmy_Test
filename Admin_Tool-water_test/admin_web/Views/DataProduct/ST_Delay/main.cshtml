@@ -1,0 +1,293 @@
+﻿@model admin_web.Models.DataProduct.ST_Delay_Model.ViewModel;
+
+@{
+    List<string> FileNameList = ViewBag.FileNameList as List<string>;
+    string FileSelect = ViewBag.FileSelect as string;
+}
+<head>
+    <meta charset="UTF-8" />
+</head>
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <div class="btn-group" role="group" aria-label="Basic example" style="margin-bottom:10px;">
+        <a href="@Url.Action("ST_Delay", "DataProduct", new {Path = "setting"})" class="btn btn-outline-danger" role="button">ST Setting</a>
+        <button type="submit" id="Download" class="btn btn-outline-primary" @(FileSelect != null ? "enabled" : "disabled")>Download File</button>
+        <button type="submit" id="sendDataButton" class="btn btn-outline-primary">Run</button>
+    </div>
+    <div id="RunResult"></div>
+
+    <!-- 主畫面表格 -->
+    <div id="MainContent" style="margin-bottom:50px; margin-top:10px;" hidden>
+        @if (Model != null && Model.Tabs != null && Model.Tabs.Count > 0)
+        {
+            <div class="d-flex align-items-center">
+                <h5>日期選擇：</h5>
+                <select id="fileSelect" class="form-select" style="width:150px">
+                    @foreach (var item in FileNameList)
+                    {
+                        if (FileSelect == item)
+                        {
+                            <option value="@item" selected>@item</option>
+                        }
+                        else
+                        {
+                            <option value="@item">@item</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div style="margin-bottom: 50px;">
+                <!-- 標籤導航 -->
+                <div class="d-flex">
+                    <ul class="nav nav-tabs nav-pills nav-fill flex-nowrap" id="myTab" role="tablist" style="margin-top: 10px">
+                        @{
+                            int index = 1;
+                        }
+                        @foreach (var item in Model.Tabs)
+                        {
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link @(index == 1 ? "active" : "")"
+                                        id="tab-@index"
+                                        data-bs-toggle="tab"
+                                        data-bs-target="#section-@index"
+                                        type="button"
+                                        role="tab"
+                                        aria-controls="section-@index"
+                                        aria-selected="@(index == 1 ? "true" : "false")">
+                                    @item.Name
+                                </button>
+                            </li>
+                            index++;
+                        }
+                    </ul>
+                </div>
+
+                <!-- 選取 -->
+                <div class="btn-group" role="group" aria-label="Basic checkbox toggle button group" style="margin-top:10px;">
+                    <input type="checkbox" class="btn-check" id="filterDiffOpen" autocomplete="off">
+                    <label class="btn btn-outline-info" for="filterDiffOpen">open delay over 60s</label>
+
+                    <input type="checkbox" class="btn-check" id="filterDiffClose" autocomplete="off">
+                    <label class="btn btn-outline-info" for="filterDiffClose">close delay over 60s</label>
+                </div>
+
+                <!-- 標籤內容 -->
+                <div class="tab-content" id="myTabContent">
+                    @{
+                        index = 1;
+                    }
+                    @foreach (var item in Model.Tabs)
+                    {
+                        <div class="tab-pane fade"
+                             id="section-@index"
+                             role="tabpanel"
+                             aria-labelledby="tab-@index">
+                            <table id="table-@index" class="table table-striped table-bordered nowrap">
+                                <thead>
+                                    <tr>
+                                        @foreach (var prop in typeof(admin_web.Models.DataProduct.ST_Delay_Model.TicketRecord).GetProperties())
+                                        {
+                                            if (item.Name == "no_close" && (prop.Name == "diff_close" || prop.Name == "diff_open"))
+                                            {
+                                                continue;
+                                            }
+                                            else if (item.Name != "no_close" && prop.Name == "diff")
+                                            {
+                                                continue;
+                                            }
+                                            <th>@prop.Name</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in item.DataList)
+                                    {
+                                        <tr>
+                                            @foreach (var prop in row.GetType().GetProperties())
+                                            {
+                                                if (item.Name == "no_close" && (prop.Name == "diff_close" || prop.Name == "diff_open"))
+                                                {
+                                                    continue;
+                                                }
+                                                else if (item.Name != "no_close" && prop.Name == "diff")
+                                                {
+                                                    continue;
+                                                }
+                                                <td>@(prop.GetValue(row) ?? "N/A")</td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        index++;
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</body>
+
+@section Scripts {
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+
+    <script>
+        $(document).ready(function () {
+            showLoading();
+            setTimeout(function () {
+                hideLoading();
+                $('.tab-pane').addClass('show active');
+                var table = $('#myTabContent table').DataTable({
+                    responsive: true,
+                    scrollX: true,
+                });
+
+                $('.tab-pane').removeClass('show active');
+                $('#myTabContent .tab-pane:first').addClass('show active');
+
+                // 篩選功能
+                $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                    // no_close表不受篩選影響
+                    var tableId = settings.nTable.closest('.tab-pane').id;
+                    if (tableId == 'section-3') {
+                        return true;
+                    }
+
+                    // 篩選
+                    var filterDiffOpen = $('#filterDiffOpen').prop('checked');
+                    var filterDiffClose = $('#filterDiffClose').prop('checked');
+
+                    var diffOpen = parseFloat(data[data.length - 2]) || 0;
+                    var diffClose = parseFloat(data[data.length - 1]) || 0;
+
+                    if (filterDiffOpen && filterDiffClose) {
+                        return (diffOpen >= 60) || (diffClose >= 60);
+                    } else if (filterDiffOpen) {
+                        return diffOpen >= 60;
+                    } else if (filterDiffClose) {
+                        return diffClose >= 60;
+                    }
+
+                    return true;
+                });
+
+                $('#filterDiffOpen, #filterDiffClose').on('change', function () {
+                    var activeTabPaneId = $('#myTabContent .tab-pane.show.active').attr('id');
+
+                    $('.tab-pane').addClass('show active');
+                    table.draw();
+
+                    $('.tab-pane').removeClass('show active');
+                    $('#' + activeTabPaneId).addClass('show active');
+                });
+
+                $('#MainContent').prop('hidden', false);
+
+                // 初始化table
+                table.draw();
+            }, 1000);
+        });
+
+        // 下拉式選單
+        $(document).ready(function () {
+            $('#fileSelect').change(function () {
+                var selectedFile = $(this).val();
+                window.location.href = `ST_Delay?date=${encodeURIComponent(selectedFile)}`;
+            });
+        });
+
+        // exe
+        $(document).ready(function () {
+            $('#sendDataButton').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'ST 客戶掉單報告',
+                        Remark: '執行工具'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var formData = new FormData();
+                formData.append('tool_path', 'ST_delay');
+                formData.append('output_path', '_');
+                formData.append('exe_name', "test1.exe");
+                formData.append('DeleteAllFile', false);
+
+                $('#sendDataButton').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("RunExe", "Universal")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    beforeSend: function () {
+                        showLoading("正在執行工具");
+                    },
+                    success: function (response) {
+                        alert('工具執行完成！');
+                        location.reload(true);
+                    },
+                    error: function (error) {
+                        hideLoading();
+                        $('#sendDataButton').prop('disabled', false);
+                        $('#RunResult').html(`<p class="text-danger">${error.responseText}</p>`);
+                    }
+                });
+            });
+        });
+
+        // download
+        $(document).ready(function () {
+            var output_path = "ST_delay\\output";
+
+            $('#Download').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'ST 客戶掉單報告',
+                        Remark: '下載檔案'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var fileName = "@FileSelect" + ".xlsx";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                    '?output_path=' + encodeURIComponent(output_path) +
+                                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+        });
+    </script>
+}

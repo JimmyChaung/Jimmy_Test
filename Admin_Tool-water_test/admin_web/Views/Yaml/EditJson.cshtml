@@ -1,0 +1,24 @@
+﻿@model admin_web.Controllers.DynamicYamlEditModel
+
+@{
+    ViewData["Title"] = "Edit JSON Config";
+}
+
+<h2>編輯 close_to_open.json / symbol_groups_config.json</h2>
+
+<form method="post" action="/Yaml/GenerateFromEditedJson">
+    <input type="hidden" name="jobId" value="@Model.JobId" />
+    <input type="hidden" name="mode" value="@Model.Mode" />
+    <input type="hidden" name="enableExcluded" value="@Model.EnableExcluded.ToString().ToLower()" />
+
+    <h3>close_to_open.json</h3>
+    <textarea name="closeToOpenJson" style="width:100%; height:350px; font-family:Consolas, monospace;">@Model.CloseToOpenJson</textarea>
+
+    <h3>symbol_groups_config.json</h3>
+    <textarea name="symbolGroupsConfigJson" style="width:100%; height:350px; font-family:Consolas, monospace;">@Model.SymbolGroupsConfigJson</textarea>
+
+    <br />
+    <br />
+
+    <button type="submit">使用此 JSON 產生 YAML</button>
+</form>

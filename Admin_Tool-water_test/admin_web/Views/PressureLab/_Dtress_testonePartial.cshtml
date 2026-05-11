@@ -1,0 +1,68 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+
+<form class="form-wrap">
+
+    <!-- Section: Account Setup -->
+    <div class="section">
+        <div class="section-header">
+            <div class="section-dot"></div>
+            <span class="section-title">Account Setup</span>
+        </div>
+
+        <div class="section-body">
+            <!--server-->
+            <div class="field">
+                <label class="field-label">Server</label>
+                <select id="server_list" name="server_list">
+                    <option value="">-- ALL --</option>
+                </select>
+            </div>
+
+            <!--group-->
+            <div class="field">
+                <label class="field-label">Group</label>
+                <select id="group_list" name="group_list">
+                    <option value="">-- ALL --</option>
+                </select>
+            </div>
+
+            <!--leverage-->
+            <div class="field">
+                <label class="field-label">Leverage</label>
+                <input type="text" id="leverage_value" name="leverage_value" placeholder="e.g. 1:100" required />
+            </div>
+
+            <!--login-->
+            <div class="field">
+                <label class="field-label">Login</label>
+                <input type="text" id="login_value" name="login_value" placeholder="Account login ID" required />
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="section-body">
+            <!--入金-->
+            <div class="field">
+                <label class="field-label">Deposit</label>
+                <input type="text" id="deposit_value" name="deposit_value" placeholder="0.00" required />
+            </div>
+
+            <!--comment-->
+            <div class="field">
+                <label class="field-label">Comment</label>
+                <input type="text" id="comment_value" name="comment_value" placeholder="入金備註" required />
+            </div>
+        </div>
+    </div>
+    <!-- Submit -->
+    <div class="submit-row">
+        <button type="reset" class="btn btn-ghost">Reset</button>
+        <button type="button" class="btn btn-primary" id="execute_btn">▶ Execute</button>
+    </div>
+
+</form>

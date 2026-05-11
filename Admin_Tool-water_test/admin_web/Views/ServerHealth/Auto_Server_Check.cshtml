@@ -1,0 +1,804 @@
+﻿@model admin_web.Models.DataProduct.Auto_Server_Check_ViewModel
+@using System.Data
+@{
+    ViewData["Title"] = "Server Auto Check";
+    List<string> fileContent = ViewBag.FileContent as List<string>;
+    string FileName = ViewBag.FileName as string;
+    var brandlist = ViewBag.Brands as List<string>;
+    var serverlist = ViewBag.ServersByBrand as Dictionary<string, List<string>>;
+}
+
+
+<style>
+    .important-label {
+        font-weight: 900;
+        color: darkgreen;
+    }
+
+</style>
+
+<head>
+    <meta charset="UTF-8">
+    @*<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">*@
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/antd@4.23.0/dist/antd.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/antd@4.23.0/dist/antd.min.js"></script>
+
+    @*<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>*@
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/43.2.0/ckeditor5.css" />
+
+    <script src="~/js/ServerHealth.js" asp-append-version="true"></script>
+    @*flatptckr css http:\\cdn.jsdeliver.net\npm\jAJ\*@
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</head>
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <hr />
+
+    @using (Html.BeginForm("Auto_Server_Check", "ServerHealth", FormMethod.Post))
+    {
+        <div class="container">
+            <div class="row align-items-end mb-3">
+                <div class="col-auto">
+                    <label for="brandSelect">品牌</label>
+                    <select id="brandSelect" name="brandSelect" class="form-select" style="min-width:150px">
+
+                        @foreach (var brand in brandlist)
+                        {
+                            if (ViewBag.selectedbrand == brand)
+                            {
+                                <option value="@brand" selected>@brand</option>
+                            }
+                            else
+                            {
+                                <option value="@brand">@brand</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-auto">
+                    <label for="serverSelect">伺服器</label>
+                    <select id="serverSelect" name="serverSelect" class="form-select" style="min-width:150px">
+                        <option value=""></option>
+                    </select>
+                </div>
+
+                <div class="col-auto">
+                    <label for="startTime">開始時間</label>
+                    <input type="text" id="startTime" name="startTime" class="form-control" style="min-width: 200px;" />
+                </div>
+
+                <div class="col-auto">
+                    <label for="endTime">結束時間</label>
+                    <input type="text" id="endTime" name="endTime" class="form-control" style="min-width: 200px;" />
+                </div>
+
+                <div class="col-auto align-self-end">
+                    <button type="submit" id="submitBtn" class="btn btn-primary mt-2" disabled">查詢報表</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <button id="send_lark_btn" class="btn btn-primary">發送Lark訊息</button>
+
+    <hr />
+
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i> 使用說明
+        <ul>
+            <li>搜尋時間請使用系統時間，並請用30分鐘為單位區間搜尋</li>
+            <li>本網頁架構是每半小時，取Journal資料，計算後寫入資料庫，網頁再從資料庫請求數據</li>
+            <li>資料庫每半小時紀錄一次資料，假設當下時間是14:58:00 ，則不會有14:30:00~15:00:00的資料，15:00:00後才會開始寫入(請看下點)</li>
+            <li>目前資料庫與Journal，有3~8分鐘不等的延遲，因此若希望查詢9:30~10:00的資料，建議10:15再開始查詢。</li>
+            <li>Output的Time，例如2025.05.01 15，代表在系統時間15:00:00~16:00:00，對應的Login，做了多少次請求</li>
+            <li>Filter和No money是計算搜尋時間範圍內的總合，其餘都以每小時為單位計算</li>
+            <li>
+                顯示門檻：
+                <ul>
+                    <li>改單 / 關單 / No Money：600 次 / 小時</li>
+                    <li>Filter：指定時間區間內總數超過 3000 次</li>
+                    <li>Invalid Password、Unknown User Login：30 次 / 小時</li>
+                    <li>API：任意出現都會顯示，但只會顯示TOP5</li>
+                </ul>
+            </li>
+            <li>發送Lark訊息的指定群組若需要修改，請聯繫自動化組</li>
+        </ul>
+    </div>
+
+    <hr />
+    @if (Model != null)
+    {
+        <div>
+            <strong id="server_name" class="important-label">@Model.ServerName</strong>
+            <span> Server排查(排查時間 </span>
+            <span id="start_time">@Model.StartTime - @Model.endTime </span>
+            <span> ) </span>
+        </div>
+    }
+    <br />
+    @if (Model != null)
+    {
+        <div>
+            <strong class="important-label">範圍內 Max / Min 記憶體 : </strong> <span id="memory_count">@Model.max_memory / @Model.min_memory</span>
+        </div>
+        <br />
+        <div>
+            <strong class="important-label">Historical Order : </strong> <span id="ticket_count">@Model.Ticket_Count</span>
+        </div>
+        <br />
+        <div>
+            <strong class="important-label">Holding Position : </strong> <span id="position_count">@Model.Position_Count</span>
+        </div>
+    }
+
+
+    <br />
+    @if (Model != null && Model.DataList_modify != null && Model.DataList_modify.Any())
+    {
+
+        <div>
+            <p>
+                <strong class="important-label">Total modified orders:</strong>
+                <span id="modify_total">@Model.ModifyTotalLogin / @Model.ModifyTotalCount</span> (人/總次數)
+            </p>
+            <p>
+                單一帳號最高改單次數: <span id="modify_max">@Model.ModifyMax</span>
+            </p>
+        </div>
+
+        <table id="modified_table" class="table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Login</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.DataList_modify)
+                {
+                    <tr>
+                        <td>@row.MT_INPUT_TIME.ToString("yyyy.MM.dd HH")</td>
+                        <td>@row.LOGIN</td>
+                        <td>@row.COUNT</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (Model != null && Model.IsSearchPerformed)
+    {
+        <strong class="important-label">Total modified orders:</strong>
+        <p style="color: red;">無超過 600次/小時 的帳號</p>
+    }
+
+
+    <br />
+    @if (Model != null && Model.DataList_modify_sec != null && Model.DataList_modify_sec.Any())
+    {
+
+        <div>
+            <p>
+                <strong class="important-label"> Per seconds modified :</strong>
+            </p>
+        </div>
+
+        <table id="modified_sec_table" class="table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Login</th>
+                    <th>Request_per_second</th>
+                    <th>Total Counts</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.DataList_modify_sec)
+                {
+                    <tr>
+                        <td>@row.MT_INPUT_TIME.ToString("yyyy.MM.dd HH:mm:ss")</td>
+                        <td>@row.LOGIN</td>
+                        <td>@row.SEC_COUNT</td>
+                        <td>@row.TOTAL_COUNT</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (Model != null && Model.IsSearchPerformed)
+    {
+        <strong class="important-label">Per seconds modified :</strong>
+        <p style="color: red;">無超過 3次/每秒 的帳號</p>
+    }
+
+    <br />
+
+    @if (Model != null && Model.DataList_close != null && Model.DataList_close.Any())
+    {
+
+        <div>
+            <p>
+                <strong class="important-label">Total close orders:</strong>
+                <span id="close_total">@Model.CloseTotalLogin / @Model.CloseTotalCount</span> (人/總次數)
+            </p>
+        </div>
+
+        <table id="close_table" class="table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Login</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.DataList_close)
+                {
+                    <tr>
+                        <td>@row.MT_INPUT_TIME.ToString("yyyy.MM.dd HH")</td>
+                        <td>@row.LOGIN</td>
+                        <td>@row.COUNT</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (Model != null && Model.IsSearchPerformed)
+    {
+        <strong class="important-label">Total close orders:</strong>
+        <p style="color: red;">無超過 600次/小時 的帳號</p>
+    }
+
+
+    <br />
+
+    @if (Model != null && Model.DataList_nomoney != null && Model.DataList_nomoney.Any())
+    {
+
+        <div>
+            <p>
+                <strong class="important-label">Total No Money orders:</strong>
+                <span id="nomoney_total">@Model.NomoneyTotalLogin / @Model.NomoneyTotalCount</span> (人/總次數)
+            </p>
+        </div>
+
+        <table id="nomoney_table" class="table">
+            <thead>
+                <tr>
+                    <th>Login</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.DataList_nomoney)
+                {
+                    <tr>
+                        <td>@row.LOGIN</td>
+                        <td>@row.COUNT</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (Model != null && Model.IsSearchPerformed)
+    {
+        <strong class="important-label">Total No Money:</strong>
+        <p style="color: red;">無超過 600次/小時 的帳號</p>
+    }
+
+
+
+    <br />
+
+    @if (Model != null && Model.DataList_filter != null && Model.DataList_filter.Any())
+    {
+
+        <div>
+            <p>
+                <strong class="important-label">Price Filter:</strong>
+            </p>
+        </div>
+
+        <table id="filter_table" class="table">
+            <thead>
+                <tr>
+                    <th>SYMBOL</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.DataList_filter)
+                {
+                    <tr>
+                        <td>@row.SYMBOL</td>
+                        <td>@row.COUNT</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (Model != null && Model.IsSearchPerformed)
+    {
+        <strong class="important-label">Price Filter:</strong>
+        <p style="color: red;">無超過 總和3K 的商品</p>
+    }
+
+
+    <br />
+
+    @if (Model != null && Model.DataList_unknownuser != null && Model.DataList_unknownuser.Any())
+    {
+
+        <div>
+            <p>
+                <strong class="important-label">unknown user in login:</strong>
+            </p>
+        </div>
+
+        <table id="unknownuser_table" class="table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Login</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.DataList_unknownuser)
+                {
+                    <tr>
+                        <td>@row.MT_INPUT_TIME.ToString("yyyy.MM.dd HH")</td>
+                        <td>@row.LOGIN</td>
+                        <td>@row.COUNT</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (Model != null && Model.IsSearchPerformed)
+    {
+        <strong class="important-label">unknown user in login:</strong>
+        <p style="color: red;">無超過 30次/小時 的Login</p>
+    }
+
+
+    <br />
+
+    @if (Model != null && Model.DataList_invalidpassword != null && Model.DataList_invalidpassword.Any())
+    {
+
+        <div>
+            <p>
+                <strong class="important-label">invalid password:</strong>
+            </p>
+        </div>
+
+        <table id="invalidpassword_table" class="table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Login</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.DataList_invalidpassword)
+                {
+                    <tr>
+                        <td>@row.MT_INPUT_TIME.ToString("yyyy.MM.dd HH")</td>
+                        <td>@row.LOGIN</td>
+                        <td>@row.COUNT</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (Model != null && Model.IsSearchPerformed)
+    {
+        <strong class="important-label">invalid password:</strong>
+        <p style="color: red;">無超過 30次/小時 的Login</p>
+    }
+
+    <br />
+
+    @if (Model != null && Model.DataList_api != null && Model.DataList_api.Any())
+    {
+
+        <div>
+            <p>
+                <strong class="important-label">API:</strong>
+            </p>
+        </div>
+
+        <table id="api_table" class="table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Login</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.DataList_api)
+                {
+                    <tr>
+                        <td>@row.MT_INPUT_TIME.ToString("yyyy.MM.dd HH")</td>
+                        <td>@row.LOGIN</td>
+                        <td>@row.COUNT</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (Model != null && Model.IsSearchPerformed)
+    {
+        <strong class="important-label">API:</strong>
+        <p style="color: red;">無超過 0次/小時 的Login，無異常API請求</p>
+    }
+
+</body>
+
+@section Scripts {
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+
+    <script>
+
+        $(document).ready(function () {
+            $('#submitBtn').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Server自動化排查',
+                        Remark: '查詢報表'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+            });
+        });
+
+        $(document).ready(function () {
+            $('#send_lark_btn').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Server自動化排查',
+                        Remark: '發送Lark訊息'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+            });
+        });
+
+        var serverList = @Html.Raw(Json.Serialize(serverlist));
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var selectedBrand = document.getElementById('brandSelect').value;
+            if (selectedBrand) {
+                populateServers(selectedBrand); // 自動填充伺服器選項
+            }
+        });
+
+        function populateServers(selectedBrand) {
+            var serverSelect = document.getElementById('serverSelect');
+            serverSelect.innerHTML = '<option value="">選擇伺服器</option>'; // 清空伺服器選單
+
+            if (selectedBrand && serverList[selectedBrand]) {
+                var servers = serverList[selectedBrand]; // 使用Script中的serverList
+                var selectedServer = '@ViewBag.selectedserver'; // 頁面中已選的伺服器
+
+                servers.forEach(function (server) {
+                    var option = document.createElement('option');
+                    option.value = server;
+                    option.text = server;
+
+                    // 保持伺服器選項的選中狀態
+                    if (server === selectedServer) {
+                        option.selected = true;
+                    }
+
+                    serverSelect.appendChild(option);
+                });
+            }
+        }
+
+        // 品牌變更時，填充伺服器選項
+        document.getElementById('brandSelect').addEventListener('change', function () {
+            var selectedBrand = this.value;
+            populateServers(selectedBrand); // 更新伺服器選單
+        });
+
+
+        const startPicker = flatpickr("#startTime", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            time_24hr: true,
+            onChange: function (selectedDates, dateStr) {
+                if (endPicker.selectedDates.length > 0 && selectedDates[0] > endPicker.selectedDates[0]) {
+                    alert("開始時間不能晚於結束時間");
+                    startPicker.clear();
+                }
+            }
+        });
+
+        const endPicker = flatpickr("#endTime", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            time_24hr: true,
+            onChange: function (selectedDates, dateStr) {
+                if (startPicker.selectedDates.length > 0 && selectedDates[0] < startPicker.selectedDates[0]) {
+                    alert("結束時間不能早於開始時間");
+                    endPicker.clear();
+                }
+            }
+        });
+
+
+        function validateFormFields() {
+            const brand = document.getElementById("brandSelect").value.trim();
+            const server = document.getElementById("serverSelect").value.trim();
+            const startTime = document.getElementById("startTime").value.trim();
+            const endTime = document.getElementById("endTime").value.trim();
+            const submitBtn = document.getElementById("submitBtn");
+
+            const isValid = brand && server && startTime && endTime;
+            submitBtn.disabled = !isValid;
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll("#brandSelect, #serverSelect, #startTime, #endTime").forEach(el => {
+                el.addEventListener("input", validateFormFields);
+                el.addEventListener("change", validateFormFields);
+            });
+
+            validateFormFields(); // 初始化檢查一次
+        });
+
+
+
+
+
+        function buildMessage() {
+            let content = '';
+
+            // Server Info
+            const serverName = document.querySelector('#server_name')?.innerText || '未知伺服器';
+            const startTime = document.querySelector('#start_time')?.innerText || '未知時間';
+            const ticketCount = document.querySelector('#ticket_count')?.innerText || '-';
+            const positionCount = document.querySelector('#position_count')?.innerText || '-';
+
+            const memoryCount = document.querySelector('#memory_count')?.innerText || '-';
+            
+            content += `${serverName} Server排查(排查時間 ${startTime} )\n\n`;
+            content += `範圍內 Max / Min 記憶體 : ${memoryCount}\n\n`;
+            content += `Historical Order : ${ticketCount}\n\n`;
+            content += `Holding Position : ${positionCount}\n\n`;
+
+
+            // modify sec  Table
+            const modify_secRows = document.querySelectorAll('#modified_sec_table tbody tr');
+
+
+            if (modify_secRows.length === 0) {
+                content += 'Per seconds modified : 無超過 3次/每秒 的帳號\n\n';
+            } else {
+                content += 'Per seconds modified :\n';
+                //content += 'Time\tLogin\tCount\n';
+                content += 'Time'.padEnd(30) + 'Login'.padEnd(12) + 'Request_sec'.padEnd(18) + 'Count_total'.padEnd(12) + '\n';
+
+                modify_secRows.forEach(row => {
+                    const cols = row.querySelectorAll('td');
+                    const time = cols[0].innerText;
+                    const login = cols[1].innerText;
+                    const count_sec = cols[2].innerText;
+                    const count_total = cols[3].innerText;
+                    content += `${time}\t${login}\t${count_sec}\t${count_total}\n`;
+                });
+                content += '\n';
+            }
+
+            // modify  Orders Table
+            
+            const modifiedRows = document.querySelectorAll('#modified_table tbody tr');
+            const modifyTotal = document.querySelector('#modify_total')?.innerText || null;
+
+            if (modifiedRows.length === 0) {
+                content += 'Total Modified Orders: 無超過 600次/小時 的帳號\n\n';
+            } else {
+                content += `Total Modified orders: ${modifyTotal} (人/總次數)\n`;
+                //content += 'Time\tLogin\tCount\n';
+                content += 'Time'.padEnd(20) + 'Login'.padEnd(12) + 'Count\n';
+                modifiedRows.forEach(row => {
+                    const cols = row.querySelectorAll('td');
+                    const time = cols[0].innerText;
+                    const login = cols[1].innerText;
+                    const count = cols[2].innerText;
+                    content += `${time}\t${login}\t${count}\n`;
+                });
+                content += '\n';
+            }
+
+            
+
+
+            // Close Orders Table
+            const closeRows = document.querySelectorAll('#close_table tbody tr');
+            const closeTotal = document.querySelector('#close_total')?.innerText || null;
+            // const closeEmpty = document.querySelector('#close_empty')?.innerText || null;
+
+            if (closeRows.length === 0) {
+                content += 'Total close orders: 無超過 600次/小時 的帳號\n\n';
+            } else {
+                content += `Total close orders: ${closeTotal} (人/總次數)\n`;
+                //content += 'Time\tLogin\tCount\n';
+                content += 'Time'.padEnd(20) + 'Login'.padEnd(12) + 'Count\n';
+                closeRows.forEach(row => {
+                    const cols = row.querySelectorAll('td');
+                    const time = cols[0].innerText;
+                    const login = cols[1].innerText;
+                    const count = cols[2].innerText;
+                    content += `${time}\t${login}\t${count}\n`;
+                });
+                content += '\n';
+            }
+
+            // No money Orders Table
+            const nomoneyRows = document.querySelectorAll('#nomoney_table tbody tr');
+            const nomoneyTotal = document.querySelector('#nomoney_total')?.innerText || null;
+
+            if (nomoneyRows.length === 0) {
+                content += 'Total No Money: 無超過 600次/小時 的帳號\n\n';
+            } else {
+                content += `Total No Money: ${nomoneyTotal} (人/總次數)\n`;
+                //content += 'Login\tCount\n';
+                content += 'Login'.padEnd(12) + 'Count\n';
+                nomoneyRows.forEach(row => {
+                    const cols = row.querySelectorAll('td');
+                    const login = cols[0].innerText;
+                    const count = cols[1].innerText;
+                    content += `${login}\t${count}\n`;
+                });
+                content += '\n';
+            }
+
+            // Filter Table
+            const filterRows = document.querySelectorAll('#filter_table tbody tr');
+
+            if (filterRows.length === 0) {
+                content += 'Price Filter: 無超過 總和3K 的商品\n\n';
+            } else {
+                content += 'Price Filter:\n';
+                //content += 'Symbol\tCount\n';
+                content +=  'Symbol'.padEnd(12) + 'Count\n';
+                filterRows.forEach(row => {
+                    const cols = row.querySelectorAll('td');
+                    const symbol = cols[0].innerText;
+                    const count = cols[1].innerText;
+                    content += `${symbol}\t${count}\n`;
+                });
+                content += '\n';
+            }
+
+            // unknown user  Table
+            const userRows = document.querySelectorAll('#unknownuser_table tbody tr');
+
+
+            if (userRows.length === 0) {
+                content += 'unknown user in login: 無超過 30次/小時 的Login\n\n';
+            } else {
+                content += 'unknown user in login:\n';
+                //content += 'Time\tLogin\tCount\n';
+                content += 'Time'.padEnd(20) + 'Login'.padEnd(12) + 'Count\n';
+                userRows.forEach(row => {
+                    const cols = row.querySelectorAll('td');
+                    const time = cols[0].innerText;
+                    const login = cols[1].innerText;
+                    const count = cols[2].innerText;
+                    content += `${time}\t${login}\t${count}\n`;
+                });
+                content += '\n';
+            }
+
+            // invaild password  Table
+            const passwordRows = document.querySelectorAll('#invalidpassword_table tbody tr');
+
+
+            if (passwordRows.length === 0) {
+                content += 'invalid password: 無超過 30次/小時 的Login\n\n';
+            } else {
+                content += 'invalid password:\n';
+                //content += 'Time\tLogin\tCount\n';
+                content += 'Time'.padEnd(20) + 'Login'.padEnd(12) + 'Count\n';
+                passwordRows.forEach(row => {
+                    const cols = row.querySelectorAll('td');
+                    const time = cols[0].innerText;
+                    const login = cols[1].innerText;
+                    const count = cols[2].innerText;
+                    content += `${time}\t${login}\t${count}\n`;
+                });
+                content += '\n';
+            }
+
+            // api  Table
+            const apiRows = document.querySelectorAll('#api_table tbody tr');
+
+
+            if (apiRows.length === 0) {
+                content += 'API: 無超過 0次/小時 的Login，無異常API請求\n\n';
+            } else {
+                content += 'API:\n';
+                //content += 'Time\tLogin\tCount\n';
+                content += 'Time'.padEnd(20) + 'Login'.padEnd(12) + 'Count\n';
+                apiRows.forEach(row => {
+                    const cols = row.querySelectorAll('td');
+                    const time = cols[0].innerText;
+                    const login = cols[1].innerText;
+                    const count = cols[2].innerText;
+                    content += `${time}\t${login}\t${count}\n`;
+                });
+                content += '\n';
+            }
+            console.log(content);
+
+            
+            console.log(content);
+
+            return content;
+        }
+
+        
+
+
+        document.getElementById('send_lark_btn').addEventListener('click', function () {
+            const message = buildMessage();
+
+            fetch('/ServerHealth/Lark_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ text: message })  
+            }).then(response => {
+                if (response.ok) {
+                    alert("訊息已發送！");
+                } else {
+                    alert("發送失敗");
+                }
+            });
+        });
+
+
+    </script>
+}

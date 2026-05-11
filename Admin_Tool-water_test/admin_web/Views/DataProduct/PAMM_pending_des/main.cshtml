@@ -1,0 +1,145 @@
+﻿@*@model  Tuple<List<admin_web.Models.DataProduct.PAMM_pending_desModel.ViewModel>,List<admin_web.Models.DataProduct.PAMM_pending_desModel.PmRecord>>*@
+@model List<admin_web.Models.DataProduct.PAMM_pending_desModel.ViewModel>
+@{
+    List<string> FileNameList = ViewBag.FileNameList as List<string>;
+    string FileSelect = ViewBag.SelectDate as string;
+}
+<head>
+    <meta charset="UTF-8" />
+</head>
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <div class="btn-group" role="group">
+        <a href="@Url.Action("PAMM_pending_des", "DataProduct", new {Path = "setting"})" id="PmSettingButton" class="btn btn-outline-danger" role="button">Pm Setting</a>
+        <button type="submit" id="Download" class="btn btn-outline-primary">Download</button>
+    </div>
+
+    <!-- 主畫面表格 -->
+    <div style="margin-bottom:50px">
+        @if (FileNameList.Count() > 0)
+        {
+            <div class="d-flex align-items-center">
+                <h5>日期選擇：</h5>
+                <select id="fileSelect" class="form-select" style="width:150px">
+                    @foreach (var item in FileNameList)
+                    {
+                        if (FileSelect == item)
+                        {
+                            <option value="@item" selected>@item</option>
+                        }
+                        else
+                        {
+                            <option value="@item">@item</option>
+                        }
+                    }
+                </select>
+            </div>
+            <table id="ViewTable" class="table table-striped table-bordered nowrap">
+                <thead>
+                    <tr>
+                        <th>PAMM Server</th>
+                        <th>Order</th>
+                        <th>Server</th>
+                        <th>Login</th>
+                        <th>Status</th>
+                        <th>Currency</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.PAMM_Server</td>
+                            <td>@item.Order</td>
+                            <td>@item.Server</td>
+                            <td>@item.Login</td>
+                            <td>@item.Status</td>
+                            <td>@item.CURRENCY</td>
+                            <td>@item.amount</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="d-flex align-items-center">
+                <h5>無任何資料，請執行工具以產生新資料</h5>
+            </div>
+        }
+    </div>
+</body>
+
+@section Scripts {
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+
+    <script>
+        $(document).ready(function () {
+            showLoading();
+            setTimeout(function () {
+                hideLoading();
+                $('#ViewTable .table').DataTable({
+                    responsive: true,
+                    scrollX: true,
+                });
+            }, 1000);
+        });
+
+        // download
+        $(document).ready(function () {            
+            var output_path = "PAMM_pending_des\\out_put";
+            var FileSelect = '@FileSelect';
+
+            $('#Download').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'PAMM Pending 資金紀錄',
+                        Remark: '下載檔案'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+                var fileName = "allPAMM_" + FileSelect + ".csv";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                    '?output_path=' + encodeURIComponent(output_path) +
+                                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+        });
+
+        $(document).ready(function () {
+            // 初始Table
+            var table = $('#ViewTable').DataTable();
+
+            // 下拉式選單
+            $('#fileSelect').change(function () {
+                var selectedFile = $(this).val();
+                window.location.href = `PAMM_pending_des?Date=${encodeURIComponent(selectedFile)}`;
+            });
+        });
+    </script>
+}

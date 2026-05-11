@@ -1,0 +1,352 @@
+﻿@model admin_web.Models.DataProduct.pamm_closedonlyModel.ViewModel;
+
+@{
+    var PammList = ViewBag.PammList as List<string>;
+    var DateList = ViewBag.DateList as List<string>;
+    List<string> FileNameList = ViewBag.FileNameList as List<string>;
+    string PammSelect = ViewBag.PammSelect as string;
+    string DateSelect = ViewBag.DateSelect as string;
+    List<string> No_Color_Id = ViewBag.No_Color_Id as List<string>;
+    List<string> Special_Approve_Login = ViewBag.Special_Approve_Login as List<string>;
+}
+<head>
+    <meta charset="UTF-8" />
+</head>
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <!-- 主畫面表格 -->
+    @if (Model != null && Model.Tabs != null && Model.Tabs.Count > 0)
+    {
+        <div class="btn-group" role="group">
+            <a href="@Url.Action("pamm_closedonly", "DataProduct", new {Path = "setting"})" id="PmSettingButton" class="btn btn-outline-danger" role="button">Pm Setting</a>
+            <button type="submit" id="RunButton" class="btn btn-outline-primary">Run</button>
+            <button type="submit" id="Download" class="btn btn-outline-primary">Download</button>
+        </div>
+        <h3>當前文件：@PammSelect @DateSelect</h3>
+        <div class="d-flex align-items-center">
+            <h3>文件選擇：</h3>
+            <select id="PammSelect" class="form-select" style="width:150px">
+                <option value=""></option>
+                @foreach (var item in PammList)
+                {
+                    if (PammSelect == item)
+                    {
+                        <option value="@item" selected>@item</option>
+                    }
+                    else
+                    {
+                        <option value="@item">@item</option>
+                    }
+                }
+            </select>
+            <select id="DateSelect" class="form-select" style="width:150px">
+                <option value=""></option>
+                @foreach (var item in DateList)
+                {
+                    if (DateSelect == item)
+                    {
+                        <option value="@item" selected>@item</option>
+                    }
+                    else
+                    {
+                        <option value="@item">@item</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div style="margin-bottom: 50px;">
+            <!-- 標籤導航 -->
+            <div class="d-flex">
+                <ul class="nav nav-tabs flex-nowrap" id="myTab" role="tablist" style="margin-top:10px">
+                    @{
+                        int index = 1;
+                    }
+                    @foreach (var item in Model.Tabs)
+                    {
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(index == 1 ? "active" : "")"
+                                    id="tab-@index"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#section-@index"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="section-@index"
+                                    aria-selected="@(index == 1 ? "true" : "false")">
+                                @item.Name
+                            </button>
+                        </li>
+                        index++;
+                    }
+                </ul>
+            </div>
+
+            <!-- 選取 -->
+            <div class="btn-group" role="group" aria-label="Basic checkbox toggle button group" style="margin-top:10px;">
+                <input type="checkbox" class="btn-check" id="filterWarning" autocomplete="off">
+                <label class="btn btn-outline-info" for="filterWarning">排查客戶</label>
+            </div>
+
+            <!-- 標籤內容 -->
+            <div class="tab-content" id="myTabContent">
+                @{
+                    index = 1;
+                }
+                @foreach (var item in Model.Tabs)
+                {
+                    <div class="tab-pane fade"
+                            id="section-@index"
+                            role="tabpanel"
+                            aria-labelledby="tab-@index">
+                        <div class="table-wrapper">
+                            <table id="table-@index" class="table table-striped table-bordered nowrap">
+                                <thead>
+                                    <tr>
+                                        @foreach (string header in item.HeaderList)
+                                        {
+                                            <th>@header</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in item.DataList)
+                                    {
+                                        var floatingValue = decimal.TryParse(row.Floating.Replace("%", "").Trim(), out var floating) ? floating : 0;
+                                        var performanceFeeReceivedPercentageValue = decimal.TryParse(row.PerformanceFeeReceivedPercentage.Replace("%", "").Trim(), out var performanceFeeReceivedPercentage) ? performanceFeeReceivedPercentage : 0;
+                                        string performanceRateString = row.PerformanceRate.Trim('[', ']');
+                                        var performanceRateNumbers = performanceRateString.Split(',').Select(num => decimal.TryParse(num.Trim(), out var result) ? result : 0).ToList();
+                                        bool isPerformanceRateValid = performanceRateNumbers.Any(rate => rate > 50);
+                                        var no_color_set = index == 1 ? !No_Color_Id.Contains(row.ConfigurationId) : true ;
+                                        var isHighlighted = (floating <= -40 || performanceFeeReceivedPercentage >= 30 || performanceRateNumbers.Any(rate => rate > 50)) && no_color_set;
+                                        bool isSpecial = Special_Approve_Login.Contains(row.AccountId);
+
+                                        var rowClass = isSpecial ? "table-success" : (isHighlighted ? "table-danger" : "");
+                                        <tr class="@(rowClass)">
+                                            <td>@row.Id</td>
+                                            <td>@row.ServerName</td>
+                                            <td>@row.SalesName</td>
+                                            <td>@row.AccountId</td>
+                                            <td>@row.Name</td>
+                                            <td>@row.Currency</td>
+                                            <td>@row.ConfigurationId</td>
+                                            <td>@row.ProfitOpen</td>
+                                            <td>@row.BalancePlatform</td>
+                                            <td>@row.InvestorDeposits</td>
+                                            <td>@row.InvestorWithdrawals</td>
+                                            <td>@row.Floating</td>
+                                            <td>@row.PerformanceFeeReceived</td>
+                                            <td>@row.PerformanceRate</td>
+                                            <td>@row.PerformanceFeeReceivedPercentage</td>
+                                            <td>@row.SalesTeam</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    index++;
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="btn-group" role="group">
+            <a href="@Url.Action("pamm_closedonly", "DataProduct", new {Path = "setting"})" id="PmSettingButton" class="btn btn-outline-danger" role="button">Pm Setting</a>
+            <button type="submit" id="RunButton" class="btn btn-outline-primary">Run</button>
+        </div>
+        <h3>當前文件：</h3>
+        <div class="d-flex align-items-center">
+            <h3>文件選擇：</h3>
+            <select id="PammSelect" class="form-select" style="width:150px">
+                <option value=""></option>
+                @foreach (var item in PammList)
+                {
+                    <option value="@item">@item</option>
+                }
+            </select>
+            <select id="DateSelect" class="form-select" style="width:150px" disabled>
+                <option value=""></option>
+            </select>
+        </div>
+    }
+</body>
+
+@section Scripts {
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+
+    <script>
+        $(document).ready(function () {
+            showLoading();
+            setTimeout(function () {
+                hideLoading();
+                $('.tab-pane').addClass('show active');
+                var table = $('#myTabContent .table-wrapper table').DataTable({
+                    responsive: true,
+                    scrollX: true,
+                });
+
+                $('.tab-pane').removeClass('show active');
+                $('#myTabContent .tab-pane:first').addClass('show active');
+
+                $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                    // 篩選
+                    var filterWarning = $('#filterWarning').prop('checked');
+
+                    // 獲取當前行的 jQuery 物件
+                    var row = settings.aoData[dataIndex].nTr;
+
+                    if (filterWarning) {
+                        return $(row).hasClass('table-danger');
+                    }
+
+                    return true;
+                });
+
+                $('#filterWarning').on('change', function () {
+                    var activeTabPaneId = $('#myTabContent .tab-pane.show.active').attr('id');
+
+                    $('.tab-pane').addClass('show active');
+                    table.draw();
+
+                    $('.tab-pane').removeClass('show active');
+                    $('#' + activeTabPaneId).addClass('show active');
+                });
+            }, 1000);
+        });
+
+        // exe
+        $(document).ready(function () {
+            $('#RunButton').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'PAMM Close Only 盈利檢查',
+                        Remark: '執行工具'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var formData = new FormData();
+                formData.append('tool_path', 'pamm_closedonly');
+                formData.append('output_path', 'out_put');
+                formData.append('exe_name', "weely_pamm.exe");
+                formData.append('DeleteAllFile', false);
+
+                $('#RunButton').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("RunExe", "Universal")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    beforeSend: function () {
+                        showLoading("正在執行工具");
+                    },
+                    success: function (response) {
+                        alert('工具執行完成！');
+                        location.reload(true); // 重新整理
+                    },
+                    error: function (error) {
+                        hideLoading();
+                        $('#RunButton').prop('disabled', false);
+                        $('#RunResult').html(`<p class="text-danger">${error.responseText}</p>`);
+                    }
+                });
+            });
+        });
+
+        // 選擇檔案
+        $(document).ready(function () {
+            $('#PammSelect').change(function () {
+                var SelectedPamm = $(this).val();
+                if (SelectedPamm === "") {
+                    $('#DateSelect').empty();
+                    $('#DateSelect').prop('disabled', true);
+                }
+                else {
+                    $.ajax({
+                        type: "POST",
+                        url: '@Url.Action("pamm_closedonly_GetPammDate", "DataProduct")',
+                        data: { PammName: SelectedPamm },
+                        success: function (response) {
+                            $('#DateSelect').empty();
+                            $('#DateSelect').append('<option value=""></option>');
+                            response.forEach(function (date) {
+                                $('#DateSelect').append('<option value="' + date + '">' + date + '</option>');
+                            });
+                            $('#DateSelect').prop('disabled', false);
+                        },
+                        error: function () {
+                            alert("讀取資料時發生錯誤");
+                        }
+                    });
+                }
+            });
+
+            $('#DateSelect').change(function () {
+                var selectedPamm = $('#PammSelect').val();
+                var selectedDate = $('#DateSelect').val();
+                if (selectedPamm && selectedDate) {
+                    var newUrl = `pamm_closedonly?PammSelect=${encodeURIComponent(selectedPamm)}&DateSelect=${encodeURIComponent(selectedDate)}`;
+                    window.location.href = newUrl;
+                }
+            });
+
+        });
+
+        // download
+        $(document).ready(function () {
+            $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: 'PAMM Close Only 盈利檢查',
+                    Remark: '下載檔案'
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+
+            var output_path = "pamm_closedonly\\out_put";
+            var PammSelect = '@PammSelect';
+            var DateSelect = '@DateSelect';
+
+            $('#Download').on('click', function () {
+                var fileName = PammSelect + "_" + DateSelect + ".xlsx";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                    '?output_path=' + encodeURIComponent(output_path) +
+                                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+        });
+    </script>
+}

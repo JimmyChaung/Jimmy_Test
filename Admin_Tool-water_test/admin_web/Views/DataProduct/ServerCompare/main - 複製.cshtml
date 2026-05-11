@@ -1,0 +1,285 @@
+﻿@model admin_web.Models.DataProduct.ConfigPair
+
+@{
+    ViewData["Title"] = "MT5伺服器設置水平檢查工具";
+    //string RefreshTIme = ViewBag.RefreshTIme as string;
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        .ellipsis-cell {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+            display: block;
+        }
+
+        .preserve-space {
+            white-space: pre;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+            display: block;
+        }
+
+        #configTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-family: Arial, sans-serif;
+        }
+
+        #configTable thead {
+            background-color: #007BFF;
+            color: white;
+        }
+
+        #configTable th, #configTable td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        #configTable tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        #configTable tbody tr:hover {
+            background-color: #e9f5ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <h4>Step1: 上傳檔案</h4>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <label class="input-group-text" for="SourceFileInput">Files Source Server</label>
+                <input type="file" class="form-control" name="source_files" multiple="multiple" required="required" draggable="true" id="SourceFileInput" accept=".json" />
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="input-group">
+                <label class="input-group-text" for="TargetFileInput">Files Target Server</label>
+                <input type="file" class="form-control" name="target_files" multiple="multiple" required="required" draggable="true" id="TargetFileInput" accept=".json" />
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <button type="button" class="btn btn-primary" id="UploadButton">上傳</button>
+        <!-- <a id="DownloadButton" class="btn btn-success disabled" style="pointer-events: none;">上傳結果</a> -->
+    </div>
+
+    <br />
+
+    <h4>Step2: Network 名稱配對 </h4>
+    <div class="mt-3">
+        <button type="button" class="btn btn-primary" id="loadDataBtn">開始配對</button>
+        <button type="button" class="btn btn-primary" id="saveDataBtn">儲存配對結果</button>
+    </div>
+
+    <table id="configTable" border="1" style="margin-top: 10px; display: none;">
+        <thead>
+            <tr>
+                <th>Source Server Name</th>
+                <th>Target Server Name</th>
+                <th>自訂配對</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <br />
+
+</body>
+
+</html>
+
+@section Scripts {
+    <!-- Bootstrap 5 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- DataTables v2 core + extensions -->
+    <link href="https://cdn.datatables.net/2.2.2/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.bootstrap5.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/buttons/3.0.0/css/buttons.bootstrap5.min.css" rel="stylesheet" />
+
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables v2 Core + Bootstrap 5 Integration -->
+    <script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/2.2.2/js/dataTables.bootstrap5.min.js"></script>
+    @*<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>*@
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+    <!-- FixedColumns for DataTables v2 -->
+    <script src="https://cdn.datatables.net/fixedcolumns/5.0.1/js/dataTables.fixedColumns.min.js"></script>
+    <script src="https://cdn.datatables.net/fixedcolumns/5.0.1/js/fixedColumns.bootstrap5.min.js"></script>
+
+    <!-- Buttons + Excel export for DataTables v2 -->
+    <script src="https://cdn.datatables.net/buttons/3.0.0/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.0.0/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.0.0/js/buttons.html5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <script>
+
+        //上傳
+        $(document).ready(function () {
+            $("#UploadButton").on("click", function () {
+                let config = [
+                    { folder: "SourceServer", inputId: "#SourceFileInput" },
+                    { folder: "TargetServer", inputId: "#TargetFileInput" }
+                ];
+
+
+
+                let sourceFiles = $(config[0].inputId)[0].files;
+                let targetFiles = $(config[1].inputId)[0].files;
+                // console.log(sourceFiles.length);
+                // 檢查是否剛好各上傳一個檔案
+                if (sourceFiles.length !== 1 || targetFiles.length !== 1) {
+                    alert("請確保 Source 與 Target 各上傳 1 個檔案");
+                    console.log("missing file");
+                    return;
+                }
+
+                let uploadPromises = [];
+                let hasFile = false;
+                let resultDiv = $("#uploadInputResult1");
+                resultDiv.html("");  // 清空結果
+
+                config.forEach(({ folder, inputId }) => {
+                    let fileList = $(inputId)[0].files;
+
+                    if (fileList.length > 0) {
+                        hasFile = true;
+
+                        for (let i = 0; i < fileList.length; i++) {
+                            let file = fileList[i];
+                            let formData = new FormData();
+                            formData.append("file", file);
+                            formData.append("path", folder);
+                            formData.append("file_name", file.name);
+                            formData.append("del_all", true); // 清空資料夾
+
+                            let uploadPromise = $.ajax({
+                                url: '@Url.Action("Upload_json_File", "DataProduct")',
+                                type: 'POST',
+                                data: formData,
+                                processData: false,
+                                contentType: false,
+                                beforeSend: function () {
+                                    showLoading("執行中");
+                                },
+                                success: function (response) {
+                                    //resultDiv.append(`<p class="text-success">${folder} 上傳成功：${file.name}</p>`);
+                                    console.log("upload complete");
+                                    hideLoading();
+                                },
+                                error: function (error) {
+                                    // resultDiv.append(`<p class="text-danger">${folder} 上傳失敗（${file.name}）：${error.responseText}</p>`);
+                                    console.log("upload error", error.responseText);
+                                    hideLoading();
+                                }
+                            });
+
+                            uploadPromises.push(uploadPromise);
+                        }
+                    }
+                });
+
+
+
+                Promise.all(uploadPromises)
+                    .then(() => {
+                        alert("上傳成功");
+                        console.log("complete");
+                    })
+                    .catch((error) => {
+                        console.log("error", error);
+                    });
+            });
+        });
+
+        $("#loadDataBtn").click(function () {
+            $("#configTable").show();
+            $.ajax({
+                url: '@Url.Action("match_network", "DataProduct")',
+                type: 'GET',
+                success: function (data) {
+                    // 假設 data 是 [{ A_Name: "...", B_Name: "..." }, ...]
+                    let tbody = $("#configTable tbody");
+                    tbody.empty();
+                    data.forEach(function (row, i) {
+                        let options = `<option value="">--空白選項 無需比對請點我--</option>` +
+                            data.map(d => {
+                            let selected = d.b_Name === row.b_Name ? 'selected' : '';
+                            return `<option value="${d.b_Name}" ${selected}>${d.b_Name}</option>`;
+                        }).join('');
+
+                        // console.log(row);
+                        tbody.append(`
+                            <tr>
+                                <td>${row.a_Name}</td>
+                                <td>${row.b_Name}</td>
+                                <td>
+                                    <select class="pairSelect" data-index="${i}" style="width: 300px;">
+                                        ${options}
+                                    </select>
+                                </td>
+                            </tr>
+                        `);
+                    });
+
+                    
+
+                },
+                error: function (err) {
+                    alert("讀取失敗: " + err.responseText);
+                }
+            });
+        });
+
+        $("#saveDataBtn").click(function () {
+            let result = [];
+            $("#configTable tbody tr").each(function () {
+                let sourceName = $(this).find("td:eq(0)").text().trim();
+                let targetName = $(this).find("td:eq(1)").text().trim();
+                let customPair = $(this).find("select.pairSelect").val().trim();
+
+                result.push({
+                    Source: sourceName,
+                    Target: targetName,
+                    Custom: customPair
+                });
+            });
+
+            $.ajax({
+                url: '@Url.Action("save_pairs", "DataProduct")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(result),
+                success: function (res) {
+                    alert("儲存成功！");
+                    $("#configTable").hide();
+                },
+                error: function (err) {
+                    alert("儲存失敗: " + err.responseText);
+                }
+            });
+        });
+
+
+    </script>
+}

@@ -1,0 +1,243 @@
+﻿@model admin_web.Models.ExcelViewModel
+
+@{
+    List<string> FileNameList = ViewBag.FileNameList as List<string>;
+    string FileName = ViewBag.FileName as string;
+    int index = 1;
+}
+
+@ViewBag.FileName
+
+
+<head>
+    <meta charset="utf-8" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="https://i.imgur.com/TvfjAZg.png">
+</head>
+
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <!-- 主畫面表格 -->
+    <div style="margin-bottom:50px">
+        @if (FileNameList != null)
+        {
+            <div class="d-flex align-items-center">
+                <h5>資料日期：</h5>
+                <select id="fileSelect" class="form-select" style="width:150px">
+                    @foreach (var item in FileNameList)
+                    {
+                        <option value="@item" selected="@(item == FileNameList.Last() ? "selected" : "")">@item</option>
+                    }
+                </select>
+            </div>
+
+            <hr>
+
+            <div class="container">
+                <div class="d-flex overflow-auto">
+                    <ul class="nav nav-tabs flex-nowrap" id="myTab" role="tablist">
+                        @foreach (var item in Model.Tabs)
+                        {
+                            string classSet = index == 1 ? "nav-link active" : "nav-link";
+                            string ariaControl = index == 1 ? "home" : "contact";
+                            string ariaSelected = index == 1 ? "true" : "false";
+                            <li class="nav-item" role="presentation">
+                                <button class="@classSet" id="@($"id{index}")" data-bs-toggle="tab" data-bs-target="@($"#section{index}")" type="button" role="tab" aria-controls="@ariaControl" aria-selected="@ariaSelected">@item.Name.ToString()</button>
+                            </li>
+                            index++;
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            <div class="tab-content" id="myTabContent">
+                @{ index = 1; }  
+                @foreach (var item in Model.Tabs)
+                {
+                    string classSet = index == 1 ? "tab-pane fade show active" : "tab-pane fade";
+                    <div class="@classSet" id="@($"section{index}")" role="tabpanel" aria-labelledby="@($"id{index}")">
+                        <table id="@(item.DataList.Any() ? "example" : "example1")" class="table table-striped table-bordered nowrap" style="width:100%">
+                            <thead>
+                                <tr>
+                                    @foreach (string Header in item.HeaderList)
+                                    {
+                                        <th>@Header</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (item.Check)
+                                {
+                                    @foreach (var Data in item.DataList)
+                                    {
+                                        <tr>
+                                            @foreach (var item2 in Data)
+                                            {
+                                                string cellContent = item2?.ToString();
+                                                decimal numericValue;
+                                                bool isNumeric = decimal.TryParse(cellContent, out numericValue);
+                                                
+                                                @if (isNumeric)
+                                                {
+                                                    <td style="@(numericValue < -1 ? "background:red;" : "")">@numericValue</td>
+                                                }
+                                                else
+                                                {
+                                                    <td>@cellContent</td>
+                                                }
+                                            }
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="8">「@item.Name」資料無生成</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    index++;
+                }
+            </div>
+        }
+        else
+        {
+            <div class="d-flex align-items-center">
+                <h5>無任何資料，請執行工具以產生新資料</h5>
+            </div>
+        }
+
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
+
+    <script src="https://cdn.datatables.net/2.0.3/js/dataTables.bootstrap4.js"></script>
+    <script src="https://cdn.datatables.net/responsive/3.0.1/js/dataTables.responsive.js"></script>
+    <script src="https://cdn.datatables.net/responsive/3.0.1/js/responsive.bootstrap4.js"></script>
+
+    <script>
+        // 下拉式選單
+        $(document).ready(function () {
+            $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: 'PEDelayMT5',
+                    Remark: '開啟介面'
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+
+            $('#fileSelect').change(function () {
+                var selectedFile = "log_DELAY_" + $(this).val() + "_summary.xlsx";
+
+                $.ajax({
+                    type: "POST",
+                    url: '@Url.Action("Refresh_PEDelayMT5_Data", "Mtapi")',
+                    data: { fileName: selectedFile },
+                    beforeSend: function () {
+                        showLoading();
+                        $('#myTabContent').hide();
+                    },
+                    success: function (response) {
+                        var tabs = response.tabs;
+                        var $myTabContent = $('#myTabContent');
+                        var activeID = $('#myTab button[aria-selected="true"]').attr('id').replace("id", "");
+                        $myTabContent.empty(); // 清空現有的tab內容
+
+                        for (var i = 0; i < tabs.length; i++) {
+                            var tab = tabs[i];
+                            var classSet = i + 1 == activeID ? "tab-pane fade show active" : "tab-pane fade";
+                            var $tabPane = $('<div>', {
+                                class: classSet,
+                                id: "section" + (i + 1),
+                                role: "tabpanel",
+                                'aria-labelledby': "id" + (i + 1)
+                            });
+
+                            var $table = $('<table>', {
+                                id: tab.dataList.length > 0 ? "example" : "example1",
+                                class: "table table-striped table-bordered nowrap",
+                                style: "width:100%"
+                            });
+
+                            var $thead = $('<thead>');
+                            var $theadRow = $('<tr>');
+                            tab.headerList.forEach(function (header) {
+                                $theadRow.append($('<th>').text(header));
+                            });
+                            $thead.append($theadRow); 
+                            $table.append($thead);
+
+                            var $tbody = $('<tbody>');
+                            if (tab.check) {
+                                tab.dataList.forEach(function (dataRow) {
+                                    var $dataRow = $('<tr>');
+                                    dataRow.forEach(function (dataItem) {
+                                        var cellContent = dataItem ? dataItem.toString() : "";
+                                        var $td;
+
+                                        // 
+                                        var numericValue = parseFloat(cellContent);
+                                        if (!isNaN(numericValue)) {
+                                            // 
+                                            var style = numericValue < -1 ? "background:red;" : "";
+                                            $td = $('<td>', { style: style }).text(numericValue);
+                                        } else {
+                                            //
+                                            $td = $('<td>').text(cellContent);
+                                        }
+
+                                        $dataRow.append($td);
+                                    });
+                                    $tbody.append($dataRow);
+                                });
+                            } else {
+                                $tbody.append($('<tr>').append($('<td>', {
+                                    colspan: tab.headerList.length
+                                }).text("「" + tab.name + "」資料無生成")));
+                            }
+                            $table.append($tbody);
+                            $tabPane.append($table);
+                            $myTabContent.append($tabPane);
+                        }
+
+                        
+
+                        hideLoading();
+                        $myTabContent.show();
+                    },
+                    error: function () {
+                        alert("Failed to refresh data. Please try again.");
+                        hideLoading();
+                        $('#myTabContent').show();
+                    }
+                });
+            });
+        });
+
+
+
+    </script>
+
+
+
+    
+}

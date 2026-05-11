@@ -1,0 +1,683 @@
+﻿@model Tuple<ExcelViewModel, List<admin_web.Models.DataProduct.Ea_SendMail_Model.MailRecord>>
+
+@{
+    var viewModel = Model.Item1;
+    var mailModel = Model.Item2;
+    List<string> FileNameList = ViewBag.FileNameList as List<string>;
+    string FileSelect = ViewBag.SelectDate as string;
+    var MailHeaders = ViewBag.MailHeaders as List<string>;
+    var MailData = ViewBag.MailData as List<List<string>>;
+    int index = 1;
+}
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        .custom-modal-dialog {
+            width: auto; /* 自適應內容寬度 */
+        }
+
+        .custom-modal-content {
+            width: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <div class="btn-group" role="group" aria-label="Basic example">
+        @*<button type="submit" id="sendDataButton" class="btn btn-outline-primary">Run</button>*@
+        <button type="submit" id="sendMailButton" class="btn btn-outline-danger">Send Mail</button>
+    </div>
+
+    <!-- 主畫面表格 -->
+    <div style="margin-bottom:50px">
+        @if (FileNameList.Count() > 0)
+        {
+            <div class="d-flex align-items-center">
+                <h5>資料日期：</h5>
+                <select id="fileSelect" class="form-select" style="width:250px">
+                    @foreach (var item in FileNameList)
+                    {
+                        if (FileSelect == item)
+                        {
+                            <option value="@item" selected>@item</option>
+                        }
+                        else
+                        {
+                            <option value="@item">@item</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                @foreach (var item in viewModel.Tabs)
+                {
+                    string classSet = index == 1 ? "nav-link active" : "nav-link";
+                    string ariaControl = index == 1 ? "home" : "contact";
+                    string ariaSelected = index == 1 ? "true" : "false";
+                    <li class="nav-item" role="presentation">
+                        <button class="@classSet" id="@($"id{index}")" data-bs-toggle="tab" data-bs-target="@($"#section{index}")" type="button" role="tab" aria-controls="@ariaControl" aria-selected="@ariaSelected">@item.Name.ToString()</button>
+                    </li>
+                    index++;
+                }
+            </ul>
+
+            <div class="tab-content" id="myTabContent">
+                @{ index = 1; }
+                @foreach (var item in viewModel.Tabs)
+                {
+                    <div class="tab-pane fade" id="@($"section{index}")" role="tabpanel" aria-labelledby="@($"id{index}")">
+                        <table id="@(item.DataList.Any() ? "example" : "example1")" class="table table-striped table-bordered nowrap" style="width:100%">
+                            <thead>
+                                <tr>
+                                    @foreach (string Header in item.HeaderList)
+                                    {
+                                        <th>@Header</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (item.Check)
+                                {
+                                    @foreach (var Data in item.DataList)
+                                    {
+                                        <tr>
+                                            @foreach (var item2 in Data)
+                                            {
+                                                <td>@item2</td>
+                                            }
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="8">「@item.Name」資料無生成</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    index++;
+                }
+            </div>
+        }
+        else
+        {
+            <div class="d-flex align-items-center">
+                <h5>無任何資料，請執行工具以產生新資料</h5>
+            </div>
+        }
+    </div>
+
+    <!-- Mail Modal Page1 -->
+    <div class="modal fade" id="confirmationModal" data-bs-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" style=" width: auto" role="document">
+            <div class="modal-content" style=" width: auto">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmationModalLabel">寄件資訊</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <div class="input-group-text" id="btnGroupAddon">點擊下載以獲取各品牌附件</div>
+                        <button type="submit" id="Download" class="btn btn-outline-primary">下載</button>
+                    </div>
+                </div>
+
+                <!-- 編輯用表格 -->
+                <div class="container" style="margin-bottom:50px">
+                    <table id="MailTable" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%">品牌</th>
+                                <th style="width: 40%">寄件人</th>
+                                <th style="width: 40%">收件人</th>
+                                @*<th style="width: 20%">Actions</th>*@
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var record in mailModel)
+                            {
+                                <tr>
+                                    <td>
+                                        <form class="d-inline">
+                                            <input type="text" data-original-brand="@record.brand" value="@record.brand" class="form-control brand-edit" readonly />
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <form class="d-inline">
+                                            <input type="text" data-original-send_mail="@record.send_mail" value="@record.send_mail" class="form-control send_mail-edit" readonly />
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <form class="d-inline">
+                                            <input type="text" data-original-receive_mail="@record.receive_mail" value="@record.receive_mail" class="form-control receive_mail-edit" readonly />
+                                        </form>
+                                    </td>
+                                    @*<td>
+                                        <button type="button" class="btn btn-primary btn-sm edit-btn">Edit</button>
+                                        <button type="button" class="btn btn-danger btn-sm delete-btn">Delete</button>
+                                        <button type="button" class="btn btn-success btn-sm update-btn d-none">Update</button>
+                                        <button type="button" class="btn btn-secondary btn-sm cancel-btn d-none">Cancel</button>
+                                    </td>*@
+                                </tr>
+                            }
+                            @*<tr>
+                                <td>
+                                    <form class="d-inline">
+                                        <input type="text" name="brand" class="form-control brand-add" required>
+                                    </form>
+                                </td>
+                                <td>
+                                    <form class="d-inline">
+                                        <input type="text" name="send_mail" class="form-control send_mail-add" required>
+                                    </form>
+                                </td>
+                                <td>
+                                    <form class="d-inline">
+                                        <input type="text" name="receive_mail" class="form-control receive_mail-add" required>
+                                    </form>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-sm add-btn">Add</button>
+                                </td>
+                            </tr>*@
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="modal-footer">
+                    @*<button type="button" class="btn btn-danger" id="confirmSendButton">寄出</button>*@
+                    <button type="button" class="btn btn-secondary" id="cancelSendButton">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mail Modal Page2 -->
+    <div class="modal fade" id="MailResultModal" data-bs-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" style=" width: auto" role="document">
+            <div class="modal-content" style=" width: auto">
+                <div class="modal-header">
+                    <h5 class="modal-title">寄件結果</h5>
+                </div>
+                <div class="modal-body">
+                    <div id="mail-results-table-container"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="BackToConfirmation">返回設定</button>
+                    <button type="button" class="btn btn-primary" id="cancelResultButton">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+@section Scripts {
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+
+    <script>
+        $(document).ready(function () {
+            $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: 'Weekly EA 改單與開單次數統計',
+                    Remark: '開啟介面'
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+
+            showLoading();
+            setTimeout(function () {
+                hideLoading();
+                $('.tab-pane').addClass('show active');
+                $('#myTabContent [id^="section"] #example').DataTable({
+                    responsive: true,
+                    scrollX: true,
+                    lengthChange: false,
+                    pageLength: 20,
+                    searching: false,
+                    order:[]
+                });
+                $('.tab-pane').removeClass('show active');
+                $('#myTabContent .tab-pane:first').addClass('show active');
+            }, 1000)
+        });
+
+        // 下拉式選單
+        $(document).ready(function () {
+            $('#fileSelect').change(function () {
+                var selectedFile = $(this).val();
+                window.location.href = `EA_OpenAndCloseOrder?FileDate=${encodeURIComponent(selectedFile)}`;
+            });
+        });
+
+        // download
+        $(document).on('click', '#Download', function () {
+            var output_path = "EA_OpenAndCloseOrderTool\\EA_Auto\\output\\EA_Mail";
+            var zipFileName = "EA.zip";
+            var downloadUrl = '@Url.Action("DownloadZip", "Universal")' +
+                              '?output_path=' + encodeURIComponent(output_path) +
+                              '&zipFileName=' + encodeURIComponent(zipFileName);
+            window.location.href = downloadUrl;
+        });
+
+        // 整合.bat
+        $(document).ready(function () {
+            $('#sendDataButton').on('click', function () {
+
+                var formData = new FormData();
+                formData.append('tool_path', 'EA_OpenAndCloseOrderTool');
+                formData.append('output_path', '_');
+                formData.append('exe_name', "EA.bat");
+                formData.append('DeleteAllFile', false);
+
+                $('#sendDataButton').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("RunExe", "Universal")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    beforeSend: function () {
+                        showLoading("正在執行工具");
+                    },
+                    success: function (response) {
+                        alert('工具執行完成！');
+                        location.reload(true);
+                    },
+                    error: function (error) {
+                        alert(error.responseText);
+                        location.reload(true);
+                    }
+                });
+            });
+        });
+
+        // 寄信資訊
+        $(document).ready(function () {
+            // 刷新
+            function refreshTable() {
+                $.ajax({
+                    url: '/DataProduct/EA_OpenAndCloseOrder_GetMailRecords', // 伺服器端的API，返回更新後的CSV資料
+                    type: 'GET',
+                    success: function (response) {
+                        var tbody = $('#MailTable tbody');
+                        tbody.empty(); // 清空現有的表格內容
+                        $.each(response, function (index, record) {
+                            var row = `
+                                <tr>
+                                    <td><input type="text" data-original-brand="${record.brand}" value="${record.brand}" class="form-control brand-edit" readonly /></td>
+                                    <td><input type="text" data-original-send_mail="${record.send_mail}" value="${record.send_mail}" class="form-control send_mail-edit" readonly /></td>
+                                    <td><input type="text" data-original-receive_mail="${record.receive_mail}" value="${record.receive_mail}" class="form-control receive_mail-edit" readonly /></td>
+                                    <td>
+                                        <button type="button" class="btn btn-primary btn-sm edit-btn">Edit</button>
+                                        <button type="button" class="btn btn-danger btn-sm delete-btn">Delete</button>
+                                        <button type="button" class="btn btn-success btn-sm update-btn d-none">Update</button>
+                                        <button type="button" class="btn btn-secondary btn-sm cancel-btn d-none">Cancel</button>
+                                    </td>
+                                </tr>`;
+                            tbody.append(row);
+                        });
+                        var last_row = `
+                                <tr>
+                                    <td>
+                                         <form class="d-inline">
+                                            <input type="text" name="brand" class="form-control brand-add" required>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <form class="d-inline">
+                                            <input type="text" name="send_mail" class="form-control send_mail-add" required>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <form class="d-inline">
+                                            <input type="text" name="receive_mail" class="form-control receive_mail-add" required>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-primary btn-sm add-btn">Add</button>
+                                    </td>
+                                </tr>`;
+                        tbody.append(last_row);
+                        attachEventHandlers();
+                    }
+                });
+            }
+
+            function attachEventHandlers() {
+                // 新增
+                $('.add-btn').click(function () {
+                    var row = $(this).closest('tr');
+                    var brand = row.find('.brand-add').val();
+                    var send_mail = row.find('.send_mail-add').val();
+                    var receive_mail = row.find('.receive_mail-add').val();
+
+                    $.ajax({
+                        url: '/DataProduct/EA_OpenAndCloseOrder_MailConfig_Add',
+                        type: 'POST',
+                        data: { brand: brand, send_mail: send_mail, receive_mail: receive_mail },
+                        success: function (response) {
+                            if (response.success) {
+                                refreshTable(); // 如果操作成功，刷新表格
+                            } else {
+                                alert(response.message); // 如果操作失敗，顯示錯誤訊息
+                            }
+                        }
+                    });
+                });
+
+                // 編輯
+                $('.edit-btn').click(function () {
+                    var row = $(this).closest('tr');
+                    var brandInput = row.find('.brand-edit');
+                    var send_mailInput = row.find('.send_mail-edit');
+                    var receive_mailInput = row.find('.receive_mail-edit');
+
+                    brandInput.data('original-brand', brandInput.val()); // 保存原始值
+                    send_mailInput.data('original-send_mail', send_mailInput.val()); // 保存原始值
+                    receive_mailInput.data('original-receive_mail', receive_mailInput.val()); // 保存原始值
+
+                    brandInput.prop('readonly', false);
+                    send_mailInput.prop('readonly', false);
+                    receive_mailInput.prop('readonly', false);
+                    row.find('.brand-edit, .send_mail-edit, .receive_mail-edit').prop('readonly', false);
+                    $(this).addClass('d-none');
+                    row.find('.delete-btn').addClass('d-none');
+                    row.find('.update-btn, .cancel-btn').removeClass('d-none');
+                });
+
+                // 取消
+                $('.cancel-btn').click(function () {
+                    var row = $(this).closest('tr');
+                    var brandInput = row.find('.brand-edit');
+                    var send_mailInput = row.find('.send_mail-edit');
+                    var receive_mailInput = row.find('.receive_mail-edit');
+                    brandInput.prop('readonly', true);
+                    send_mailInput.prop('readonly', true);
+                    receive_mailInput.prop('readonly', true);
+                    row.find('.brand-edit').prop('readonly', true);
+                    row.find('.brand-edit').val(row.find('.brand-edit').attr('value')); // reset
+                    row.find('.send_mail-edit').prop('readonly', true);
+                    row.find('.send_mail-edit').val(row.find('.send_mail-edit').attr('value')); // reset
+                    row.find('.receive_mail-edit').prop('readonly', true);
+                    row.find('.receive_mail-edit').val(row.find('.receive_mail-edit').attr('value')); // reset
+                    row.find('.edit-btn, .delete-btn').removeClass('d-none');
+                    row.find('.update-btn, .cancel-btn').addClass('d-none');
+                });
+
+                // 更新
+                $('.update-btn').click(function () {
+                    var row = $(this).closest('tr');
+
+                    var brandInput = row.find('.brand-edit');
+                    var new_brand = brandInput.val();
+
+                    var send_mailInput = row.find('.send_mail-edit');
+                    var new_send_mail = send_mailInput.val();
+
+                    var receive_mailInput = row.find('.receive_mail-edit');
+                    var new_receive_mail = receive_mailInput.val();
+
+                    var original_brand = brandInput.data('original-brand');
+                    var original_send_mail = send_mailInput.data('original-send_mail');
+                    var original_receive_mail = receive_mailInput.data('original-receive_mail');
+
+                    $.ajax({
+                        url: '/DataProduct/EA_OpenAndCloseOrder_MailConfig_Edit',
+                        type: 'POST',
+                        data: {
+                            brandBefore: original_brand,
+                            brandAfter: new_brand,
+                            send_mailBefore: original_send_mail,
+                            send_mailAfter: new_send_mail,
+                            receive_mailBefore: original_receive_mail,
+                            receive_mailAfter: new_receive_mail
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                refreshTable(); // 如果操作成功，刷新表格
+                            } else {
+                                alert(response.message); // 如果操作失敗，顯示錯誤訊息
+                            }
+                        }
+                    });
+                });
+
+                // 刪除
+                $('.delete-btn').click(function () {
+                    var row = $(this).closest('tr');
+                    var brand = row.find('.brand-edit').val();
+                    var send_mail = row.find('.send_mail-edit').val();
+                    var receive_mail = row.find('.receive_mail-edit').val();
+                    if (confirm("您確定要刪除「將" + brand + "從" + send_mail + " 寄送至 " + receive_mail + "」的設置嗎？")) { // 刪除按鈕double check
+                        $.ajax({
+                            url: '/DataProduct/EA_OpenAndCloseOrder_MailConfig_Delete',
+                            type: 'POST',
+                            data: { brand: brand, send_mail: send_mail, receive_mail: receive_mail },
+                            success: function (response) {
+                                if (response.success) {
+                                    refreshTable(); // 如果操作成功，刷新表格
+                                } else {
+                                    alert(response.message); // 如果操作失敗，顯示錯誤訊息
+                                }
+                            }
+                        });
+                    }
+                });
+
+                // 二次確認執行
+                $(document).ready(function () {
+                    $('#sendMailButton').on('click', function () {
+                        $('#confirmationModal').modal('show');
+                    });
+
+                    $('#cancelSendButton').on('click', function () {
+                        $('#confirmationModal').modal('hide');
+                    });
+
+                    $('#confirmSendButton').on('click', function () {
+                        var formData = new FormData();
+                        formData.append('tool_path', 'EA_OpenAndCloseOrderTool\\EA_Auto');
+                        formData.append('output_path', '_');
+                        formData.append('exe_name', "send_mail.exe");
+                        formData.append('DeleteAllFile', false);
+
+                        $('#sendDataButton').prop('disabled', true);
+                        $('#sendMailButton').prop('disabled', true);
+
+                        $.ajax({
+                            url: '@Url.Action("RunExe", "Universal")',
+                            type: 'POST',
+                            data: formData,
+                            contentType: false,
+                            processData: false,
+                            beforeSend: function () {
+                                showLoading("正在發送信件...");
+                            },
+                            success: function (response) {
+                                hideLoading();
+                                $('#confirmationModal').modal('hide');
+                                $('#MailResultModal').modal('show');
+                                $('#sendDataButton').prop('disabled', false);
+                                $('#sendMailButton').prop('disabled', false);
+                            },
+                            error: function (error) {
+                                hideLoading();
+                                alert("寄信時發生錯誤。")
+                                $('#sendDataButton').prop('disabled', false);
+                                $('#sendMailButton').prop('disabled', false);
+                            }
+                        });
+                    });
+                });
+
+            }
+
+            attachEventHandlers();
+        });
+
+        $(document).ready(function () {
+            $('#BackToConfirmation').on('click', function () {
+                $('#confirmationModal').modal('show');
+                $('#MailResultModal').modal('hide');
+                refreshTable();
+            });
+
+            $('#cancelResultButton').on('click', function () {
+                $('#MailResultModal').modal('hide');
+            });
+
+            $('#MailResultModal').on('show.bs.modal', function () {
+                $.ajax({
+                    url: '/DataProduct/EA_OpenAndCloseOrder_GetMailResults',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        console.log(data);
+                        var table = '<table class="table table-striped">';
+                        table += '<thead><tr><th>寄件人</th><th>收件人</th><th>檔案</th><th>狀態</th></tr></thead>';
+                        table += '<tbody>';
+                        $.each(data, function (index, item) {
+                            table += '<tr>';
+                            table += '<td>' + item.from + '</td>';
+                            table += '<td>' + item.to + '</td>';
+                            table += '<td>' + item.brand + '</td>';
+                            table += '<td>' + item.status + '</td>';
+                            table += '</tr>';
+                        });
+                        table += '</tbody></table>';
+                        $('#mail-results-table-container').html(table);
+                    },
+                    error: function (error) {
+                        console.error('獲取資料失敗：', error);
+                        $('#mail-results-table-container').html('<p>無法加載資料。</p>');
+                    }
+                });
+            });
+
+            // 上傳config
+            // mt4
+            $('#MT4uploadInput').on('click', function () {
+                var formData = new FormData();
+                var fileInput = document.getElementById('MT4inputFile');
+                formData.append('file', fileInput.files[0]);
+                formData.append('del_all', false);
+                formData.append('path', 'EA_OpenAndCloseOrderTool\\EA_Journal\\config');
+
+                $.ajax({
+                    url: '@Url.Action("UploadFile", "Universal")', // 呼叫Controller
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        alert(response);
+                    },
+                    error: function (error) {
+                        alert(error.responseText);
+                    }
+                });
+            });
+
+            $('#MT4TemplateDownload').on('click', function () {
+                var output_path = "EA_OpenAndCloseOrderTool\\template";
+                var fileName = "MT4_server.csv";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                    '?output_path=' + encodeURIComponent(output_path) +
+                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+
+            // mt5
+            $('#MT5uploadInput').on('click', function () {
+                var formData = new FormData();
+                var fileInput = document.getElementById('MT5inputFile');
+                formData.append('file', fileInput.files[0]);
+                formData.append('del_all', false);
+                formData.append('path', 'EA_OpenAndCloseOrderTool\\EA_Journal\\config');
+
+                $.ajax({
+                    url: '@Url.Action("UploadFile", "Universal")', // 呼叫Controller
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        alert(response);
+                    },
+                    error: function (error) {
+                        alert(error.responseText);
+                    }
+                });
+            });
+
+            $('#MT5TemplateDownload').on('click', function () {
+                var output_path = "EA_OpenAndCloseOrderTool\\template";
+                var fileName = "MT5_server.csv";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                    '?output_path=' + encodeURIComponent(output_path) +
+                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+
+            // server
+            $('#ServeruploadInput').on('click', function () {
+                var formData = new FormData();
+                var fileInput = document.getElementById('ServerinputFile');
+                formData.append('file', fileInput.files[0]);
+                formData.append('del_all', false);
+                formData.append('path', 'EA_OpenAndCloseOrderTool\\EA_Auto\\config');
+
+                $.ajax({
+                    url: '@Url.Action("UploadFile", "Universal")', // 呼叫Controller
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        alert(response);
+                    },
+                    error: function (error) {
+                        alert(error.responseText);
+                    }
+                });
+            });
+
+            $('#ServerTemplateDownload').on('click', function () {
+                var output_path = "EA_OpenAndCloseOrderTool\\template";
+                var fileName = "server_report.csv";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                    '?output_path=' + encodeURIComponent(output_path) +
+                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+        });
+    </script>
+}

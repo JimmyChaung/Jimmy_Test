@@ -1,0 +1,30 @@
+﻿@model List<admin_web.Models.FileModel.FileEntry>
+
+<div>
+    @if (Model != null && Model.Count > 0)
+    {
+        foreach (var item in Model)
+        {
+            if (item.Type == "dir")
+            {
+                <div>
+                    <a href="javascript:void(0);" onclick="loadEntries('@item.Path')" id="@item.Path">
+                        <h4>📁 @item.Name</h4>
+                    </a>
+                </div>
+            }
+            else if (item.Type == "excel")
+            {
+                <div>
+                    <a href="javascript:void(0);" onclick="loadExcel('@item.Path')">
+                        <h4>📄 @item.Name</h4>
+                    </a>
+                </div>
+            }
+        }
+    }
+    else
+    {
+        <p>No files or directories found.</p>
+    }
+</div>

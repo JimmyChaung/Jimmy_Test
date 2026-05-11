@@ -1,0 +1,380 @@
+﻿@{
+    ViewData["Title"] = "Stress Test";
+}
+
+<style>
+    .card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+        .card h5 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            font-size: 15px;
+        }
+
+    label {
+        font-size: 13px;
+        color: #555;
+        display: block;
+        margin-top: 10px;
+    }
+
+    select, input {
+        width: 100%;
+        padding: 8px;
+        margin-top: 4px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 13px;
+    }
+
+    button {
+        margin-top: 14px;
+        padding: 10px 24px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        background: #4a90e2;
+        color: white;
+    }
+
+        .btn-primary:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+
+    .status-msg {
+        font-size: 12px;
+        color: #888;
+        margin-top: 8px;
+        min-height: 18px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    th {
+        background: #f0f0f0;
+        padding: 8px 12px;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 8px 12px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+    }
+
+    .badge-fail {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+    }
+
+    pre {
+        background: #f8f8f8;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 12px;
+        font-size: 11px;
+        overflow: auto;
+        max-height: 400px;
+        white-space: pre-wrap;
+        word-break: break-all;
+        margin-top: 8px;
+    }
+
+    .summary-bar {
+        display: flex;
+        gap: 16px;
+        font-size: 13px;
+        margin-bottom: 12px;
+        padding: 10px 14px;
+        background: #f8f8f8;
+        border-radius: 6px;
+        border: 1px solid #eee;
+    }
+</style>
+
+<h4>Stress Test</h4>
+
+<!-- Step 1 -->
+<div class="card">
+    <h5>Step 1｜選擇伺服器與組別</h5>
+    <label>伺服器</label>
+    <select id="serverSelect"><option value="">-- 載入中 --</option></select>
+    <label>組別</label>
+    <select id="groupSelect"><option value="">-- 請先選擇伺服器 --</option></select>
+    <div class="status-msg" id="serverStatus"></div>
+</div>
+
+<!-- Step 2 -->
+<div class="card">
+    <h5>Step 2｜參數設定</h5>
+    <label>創建帳號數量</label>
+    <input type="number" id="volume" value="2" min="1" max="100" />
+    <label>槓桿</label>
+    <input type="number" id="leverage" value="100" min="1" />
+    <label>入金金額</label>
+    <input type="number" id="balance" value="10000" min="0" />
+    <label>備註</label>
+    <input type="text" id="comment" value="Stress Test Deposit" />
+    <button class="btn-primary" id="runBtn" onclick="runStressTest()">▶ 執行測試</button>
+    <div class="status-msg" id="runStatus"></div>
+</div>
+
+<!-- Step 3 -->
+<div class="card" id="resultCard" style="display:none;">
+    <h5>Step 3｜測試結果</h5>
+    <div class="summary-bar" id="summaryBar"></div>
+    <table>
+        <thead><tr id="resultHead"></tr></thead>
+        <tbody id="resultBody"></tbody>
+    </table>
+    <div style="margin-top:16px;">
+        <label style="font-size:12px; color:#888; font-weight:600;">▼ Raw JSON</label>
+        <pre id="rawJson"></pre>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ── 載入伺服器列表 ────────────────────────────────────
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                const res = await fetch("/StressTest/GetServers");
+                const servers = await res.json();
+                const sel = document.getElementById("serverSelect");
+
+                sel.innerHTML = '<option value="">-- 請選擇伺服器 --</option>';
+                servers.forEach(s => {
+                    const opt = document.createElement("option");
+                    opt.value = s.serverName;
+                    opt.text = `${s.serverName}  (${s.mtType})`;
+                    sel.appendChild(opt);
+                });
+            } catch (e) {
+                document.getElementById("serverStatus").textContent = "❌ 伺服器列表載入失敗: " + e.message;
+            }
+        });
+
+        // ── 選伺服器後撈組別 ──────────────────────────────────
+        document.getElementById("serverSelect").addEventListener("change", async function () {
+            const serverName = this.value;
+            const groupSel = document.getElementById("groupSelect");
+            const statusEl = document.getElementById("serverStatus");
+
+            if (!serverName) {
+                groupSel.innerHTML = "<option value=''>-- 請先選擇伺服器 --</option>";
+                statusEl.textContent = "";
+                return;
+            }
+
+            groupSel.innerHTML = "<option>載入中...</option>";
+            statusEl.textContent = `⏳ 正在取得 ${serverName} 的組別...`;
+
+            try {
+                const res = await fetch("/StressTest/GetGroups", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ serverName })
+                });
+                const text = await res.text();
+                const data = JSON.parse(text);
+
+                if (data.error) {
+                    statusEl.textContent = "❌ " + data.error;
+                    groupSel.innerHTML = "<option>取得失敗</option>";
+                    return;
+                }
+
+                const groups = data.serverGroup
+                    ? data.serverGroup.split(",").map(g => g.trim()).filter(Boolean)
+                    : [];
+
+                if (groups.length === 0) {
+                    groupSel.innerHTML = "<option>無組別資料</option>";
+                    statusEl.textContent = `⚠️ ${data.mtType} | 沒有撈到組別`;
+                    return;
+                }
+
+                groupSel.innerHTML = "";
+                groups.forEach(g => {
+                    const opt = document.createElement("option");
+                    opt.value = g; opt.text = g;
+                    groupSel.appendChild(opt);
+                });
+                statusEl.textContent = `✅ ${data.mtType} | 共 ${groups.length} 個組別`;
+
+            } catch (e) {
+                statusEl.textContent = "❌ 解析失敗: " + e.message;
+            }
+        });
+
+        // ── 執行壓測 ──────────────────────────────────────────
+        async function runStressTest() {
+            const serverName = document.getElementById("serverSelect").value;
+            const group = document.getElementById("groupSelect").value;
+            const volume = parseInt(document.getElementById("volume").value);
+            const leverage = parseInt(document.getElementById("leverage").value);
+            const balance = parseFloat(document.getElementById("balance").value);
+            const comment = document.getElementById("comment").value;
+            const runBtn = document.getElementById("runBtn");
+            const runStatus = document.getElementById("runStatus");
+
+            if (!serverName || !group) {
+                runStatus.textContent = "❌ 請先選擇伺服器與組別";
+                return;
+            }
+
+            runBtn.disabled = true;
+            runBtn.textContent = "⏳ 執行中...";
+            runStatus.textContent = "⏳ 正在執行壓測，請稍候...";
+            document.getElementById("resultCard").style.display = "none";
+
+            let data;
+            try {
+                const res = await fetch("/StressTest/RunStressTest", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ serverName, group, volume, leverage, balance, comment })
+                });
+                const text = await res.text();
+                data = JSON.parse(text);
+            } catch (e) {
+                runStatus.textContent = "❌ 回應解析失敗: " + e.message;
+                runBtn.disabled = false;
+                runBtn.textContent = "▶ 執行測試";
+                return;
+            }
+
+            runBtn.disabled = false;
+            runBtn.textContent = "▶ 執行測試";
+
+            // 就算有 error 也顯示 Raw JSON 方便 debug
+            document.getElementById("resultCard").style.display = "block";
+            document.getElementById("rawJson").textContent = JSON.stringify(data, null, 2);
+
+            if (data.error) {
+                runStatus.textContent = "❌ " + data.error;
+                document.getElementById("summaryBar").innerHTML = `<span style="color:#721c24">錯誤：${data.error}</span>`;
+                document.getElementById("resultHead").innerHTML = "";
+                document.getElementById("resultBody").innerHTML = "";
+                return;
+            }
+
+            renderResult(data);
+            runStatus.textContent = "✅ 完成";
+        }
+
+        // ── 渲染結果表格 ──────────────────────────────────────
+        function renderResult(data) {
+            const thead = document.getElementById("resultHead");
+            const tbody = document.getElementById("resultBody");
+            const summaryBar = document.getElementById("summaryBar");
+            thead.innerHTML = tbody.innerHTML = "";
+
+            const rows = data.loginResults || [];
+            if (!rows.length) {
+                summaryBar.innerHTML = "<span>無 loginResults 資料，請看 Raw JSON</span>";
+                return;
+            }
+
+            // 收集所有 operation 欄位
+            const ops = [...new Set(rows.flatMap(r => (r.results || []).map(x => x.operation)))];
+
+            // 表頭：Login + 各 Operation + Comment
+            ["Login", ...ops, "Comment"].forEach(col => {
+                const th = document.createElement("th");
+                th.textContent = col;
+                thead.appendChild(th);
+            });
+
+            let successCount = 0, failCount = 0;
+
+            rows.forEach(item => {
+                const tr = document.createElement("tr");
+
+                // Login 欄
+                td(tr, item.login);
+
+                // 各 Operation 欄
+                ops.forEach(op => {
+                    const cell = document.createElement("td");
+                    const hit = (item.results || []).find(r => r.operation === op);
+                    if (!hit) {
+                        cell.textContent = "-";
+                    } else {
+                        cell.innerHTML = hit.isSuccess
+                            ? '<span class="badge-success">成功</span>'
+                            : '<span class="badge-fail">失敗</span>';
+                        hit.isSuccess ? successCount++ : failCount++;
+                    }
+                    tr.appendChild(cell);
+                });
+
+                // Comment 欄（取第一筆 result 的 comment）
+                const firstComment = (item.results || [])[0]?.comment ?? "-";
+                td(tr, firstComment);
+
+                tbody.appendChild(tr);
+            });
+
+            summaryBar.innerHTML =
+                `<b>伺服器：</b>${data.serverName}　` +
+                `<b>類型：</b>${data.mtType}　` +
+                `<b>帳號數：</b>${rows.length}　` +
+                `✅ 成功：<span style="color:green;font-weight:600">${successCount}</span>　` +
+                `❌ 失敗：<span style="color:red;font-weight:600">${failCount}</span>`;
+        }
+
+        function td(tr, text) {
+            const cell = document.createElement("td");
+            cell.textContent = text ?? "-";
+            tr.appendChild(cell);
+        }
+    </script>
+}
+```
+
+---
+
+## 流程
+```
+頁面載入
+  └─ GET /StressTest/GetServers → 填 serverSelect
+
+選伺服器
+  └─ POST /StressTest/GetGroups
+       └─ Factory.Create(serverName) → MT4Executor / MT5Executor
+            └─ 填 groupSelect
+
+執行壓測
+  └─ POST /StressTest/RunStressTest
+       └─ Factory.Create(serverName)
+            └─ ConnectAsync → CreateAccount → Deposit → Disconnect
+                 └─ 表格（Login × Operation）+ Raw JSON

@@ -1,0 +1,29 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+<h2>CSV 修改檢查報表</h2>
+
+<form method="post" enctype="multipart/form-data" action="/CsvAudit/Run">
+    <div>
+        <label>A.csv 規則檔</label>
+        <input type="file" name="rules" accept=".csv" required />
+
+        <div style="margin-top:5px;">
+            <span>範例下載：</span>
+            <a href="/sample/OZ.csv" target="_blank">OZ範例</a>
+            |
+            <a href="/sample/PE_cleansymbol包含(XAUUSD用).csv" target="_blank">PE範例(cleansymbol包含(XAUUSD用))</a>
+            <a href="/sample/PE_finalname完全一致(ft用).csv" target="_blank">PE範例(finalname完全一致(ft用))</a>
+        </div>
+    </div>
+
+    <div>
+        <label>Before/After 或 .bak/.csv 檔案，可多選(可用Ctrl+A全選)</label>
+        <input type="file" name="csvFiles" accept=".csv,.bak" multiple required />
+    </div>
+
+    <br />
+    <button type="submit">產生檢查報表</button>
+</form>

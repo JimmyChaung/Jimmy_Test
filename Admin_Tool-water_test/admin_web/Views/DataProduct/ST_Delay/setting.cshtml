@@ -1,0 +1,212 @@
+﻿@model List<admin_web.Models.DataProduct.ST_Delay_Model.StRecord>;
+
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        .table-wrapper {
+            overflow-x: auto; /* 啟用水平捲動 */
+            width: 100%; /* 確保容器佔滿父容器的寬度 */
+        }
+
+        .dataTables_wrapper .dataTables_paginate {
+            margin-top: 10px; /* 設置分頁與表格間的距離 */
+        }
+    </style>
+</head>
+
+<body>
+    <h1>@ViewData["Title"] - ST設置</h1>
+    <!-- 返回主頁 -->
+    <div class="btn-group" role="group" aria-label="Basic example">
+        <a href="@Url.Action("ST_Delay", "DataProduct")"
+           class="btn btn-outline-primary" role="button">返回工具主頁</a>
+    </div>
+
+    <!-- 編輯用表格 -->
+    <table id="PmTable" class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th style="width: 40%">num</th>
+                <th style="width: 40%">server</th>
+                <th style="width: 20%">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var record in Model)
+            {
+                <tr>
+                    <td>
+                        <form class="d-inline">
+                            <input type="text" data-original-num="@record.num" value="@record.num" class="form-control num-edit" readonly />
+                        </form>
+                    </td>
+                    <td>
+                        <form class="d-inline">
+                            <input type="text" data-original-server="@record.server" value="@record.server" class="form-control server-edit" readonly />
+                        </form>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-primary btn-sm edit-btn">Edit</button>
+                        <button type="button" class="btn btn-danger btn-sm delete-btn">Delete</button>
+                        <button type="button" class="btn btn-success btn-sm update-btn d-none">Update</button>
+                        <button type="button" class="btn btn-secondary btn-sm cancel-btn d-none">Cancel</button>
+                    </td>
+                </tr>
+            }
+            <tr>
+                <td>
+                    <form class="d-inline">
+                        <input type="text" name="num" class="form-control num-add" required>
+                    </form>
+                </td>
+                <td>
+                    <form class="d-inline">
+                        <input type="text" name="server" class="form-control server-add" required>
+                    </form>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-primary btn-sm add-btn">Add</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+
+@section Scripts {
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+
+    <script>
+        $(document).ready(function () {
+            $('.content').show();
+        });
+
+        $(document).ready(function () {
+            // 刷新
+            function refreshTable() {
+                location.reload()
+            }
+
+            // 新增
+            $('.add-btn').click(function () {
+                var row = $(this).closest('tr');
+                var num = row.find('.num-add').val();
+                var server = row.find('.server-add').val();
+                $.ajax({
+                    url: '/DataProduct/ST_Delay_StRecords_Add',
+                    type: 'POST',
+                    data: { num: num, server: server },
+                    success: function (response) {
+                        if (response.success) {
+                            refreshTable(); // 如果操作成功，刷新表格
+                        } else {
+                            alert(response.message); // 如果操作失敗，顯示錯誤訊息
+                        }
+                    }
+                });
+            });
+
+            // 編輯
+            $('.edit-btn').click(function () {
+                var row = $(this).closest('tr');
+                var numInput = row.find('.num-add');
+                var serverInput = row.find('.server-add');
+
+                numInput.data('original-num', numInput.val()); // 保存原始值
+                serverInput.data('original-server', serverInput.val()); // 保存原始值
+
+                numInput.prop('readonly', false);
+                serverInput.prop('readonly', false);
+
+                row.find('.num-edit ,.server-edit').prop('readonly', false);
+                $(this).addClass('d-none');
+                row.find('.delete-btn').addClass('d-none');
+                row.find('.update-btn, .cancel-btn').removeClass('d-none');
+            });
+
+            // 取消
+            $('.cancel-btn').click(function () {
+                var row = $(this).closest('tr');
+                var numInput = row.find('.num-edit');
+                var serverInput = row.find('.server-edit');
+
+                numInput.prop('readonly', true);
+                serverInput.prop('readonly', true);
+
+                row.find('.num-edit').prop('readonly', true);
+                row.find('.num-edit').val(row.find('.num-edit').attr('value')); // reset
+                row.find('.server-edit').prop('readonly', true);
+                row.find('.server-edit').val(row.find('.server-edit').attr('value')); // reset
+                row.find('.edit-btn, .delete-btn').removeClass('d-none');
+                row.find('.update-btn, .cancel-btn').addClass('d-none');
+            });
+
+            // 更新
+            $('.update-btn').click(function () {
+                var row = $(this).closest('tr');
+
+                var numInput = row.find('.num-edit');
+                var new_num = numInput.val();
+
+                var serverInput = row.find('.server-edit');
+                var new_server = serverInput.val();
+
+                var original_server = serverInput.data('original-server');
+
+                $.ajax({
+                    url: '/DataProduct/ST_Delay_StRecords_Edit',
+                    type: 'POST',
+                    data: {
+                        numAfter: new_num,
+                        serverBefore: original_server,
+                        serverAfter: new_server
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            refreshTable(); // 如果操作成功，刷新表格
+                        } else {
+                            alert(response.message); // 如果操作失敗，顯示錯誤訊息
+                        }
+                    }
+                });
+            });
+
+            // 刪除
+            $('.delete-btn').click(function () {
+                var row = $(this).closest('tr');
+                var server = row.find('.server-edit').val();
+
+
+                if (confirm("您確定要刪除 " + server + " 的設置嗎？")) {
+                    $.ajax({
+                        url: '/DataProduct/ST_Delay_StRecords_Delete',
+                        type: 'POST',
+                        data: {server: server },
+                        success: function (response) {
+                            if (response.success) {
+                                refreshTable(); // 如果操作成功，刷新表格
+                            } else {
+                                alert(response.message); // 如果操作失敗，顯示錯誤訊息
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+    </script>
+}

@@ -1,0 +1,79 @@
+﻿@{
+    ViewData["Title"] = "主頁面";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-3">
+            <ul id="menu" class="list-group">
+                <li class="list-group-item"><a href="#" data-page="Account_management">帳號管理</a></li>
+                <li class="list-group-item"><a href="#" data-page="AnotherPage">另一個頁面</a></li>
+            </ul>
+        </div>
+        <div class="col-md-9">
+            <div id="content-area">
+                <h3>歡迎來到主頁面！</h3>
+                <p>請選擇左側的菜單以查看內容。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const menuLinks = document.querySelectorAll('#menu a');
+        const contentArea = document.getElementById('content-area');
+
+        menuLinks.forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+                loadPage(page);
+            });
+        });
+
+        function loadPage(page) {
+            alert(`/Permission/${page}`);
+            fetch(`/Permission/${page}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    contentArea.innerHTML = html;
+                    executeInlineScripts(contentArea); // 執行部分視圖中的 JavaScript
+                    executeInlineStyles(contentArea);  // 應用部分視圖中的 CSS
+                })
+                .catch(error => {
+                    console.error('There was a problem with the fetch operation:', error);
+                });
+        }
+
+
+        // 執行部分視圖中嵌入的 JavaScript
+        function executeInlineScripts(container) {
+            const scripts = container.querySelectorAll("script");
+            scripts.forEach(script => {
+                const newScript = document.createElement("script");
+                newScript.textContent = script.textContent;
+                document.body.appendChild(newScript).parentNode.removeChild(newScript);
+            });
+        }
+
+        // 加載部分視圖中的 CSS
+        function executeInlineStyles(container) {
+            const styles = container.querySelectorAll("style");
+            styles.forEach(style => {
+                const newStyle = document.createElement("style");
+                newStyle.textContent = style.textContent;
+                document.head.appendChild(newStyle);
+            });
+        }
+
+
+    });
+
+
+</script>

@@ -1,0 +1,48 @@
+# Build output folders
+bin/
+obj/
+publish/
+
+# Visual Studio 忽略檔案
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider IDE 忽略檔案
+.idea/
+
+# 日誌檔
+*.log
+
+# 產生的資料庫檔案
+*.mdf
+*.ldf
+
+# 其他常見忽略檔案
+*.ncb
+*.sdf
+*.cache
+*.dbmdl
+*.pdb
+
+# NuGet 套件資料夾
+packages/
+
+# 自動產生的發佈檔案（你專案內已經有 publish/，也可自行調整）
+*.Publish.xml
+publish/
+
+# 其他暫存或系統檔
+*.vspscc
+*.vssscc
+_ReSharper*/
+*.DotSettings.user
+
+# 依專案調整，忽略你的特定大檔資料夾（如果還有其他要忽略的路徑，也可以加）admin_web/wwwroot/tools/
+
+admin_web/wwwroot/tools/
+admin_web/wwwroot/wwwroot.zip
+admin_web/reports/StyleCopReport.sarif
+

@@ -1,0 +1,382 @@
+﻿@model List<admin_web.Models.DataProduct.ConfigDiffRecords_Model.ViewRecord>
+@{
+    string RefreshTIme = ViewBag.RefreshTIme as string;
+    string FromDate = ViewBag.FromDate as string;
+    string ToDate = ViewBag.ToDate as string;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        .ellipsis-cell {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+            display: block;
+        }
+
+        .preserve-space {
+            white-space: pre;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <div class="p-4 mb-4 bg-light rounded border border-secondary shadow-sm">
+        <div class="d-flex align-items-center gap-3 flex-wrap mb-3">
+            <input type="text" id="dateRange" class="form-control" placeholder="請選擇日期範圍" style="width: 250px;">
+            <button id="searchBtn" class="btn btn-success">
+                <i class="bi bi-search"></i>
+            </button>
+            <button id="refreshBtn" class="btn btn-dark">
+                刷新今日PE資料 <i id="refreshIcon" class="bi bi-arrow-clockwise"></i>
+            </button>
+            <div id="refresh_note"></div>
+        </div>
+        <hr />
+        <div id="refreshTime" class="text-muted">今日資料最新取得時間：@RefreshTIme</div>
+    </div>
+
+    @if (Model != null)
+    {
+        <div id="All_Data" hidden>
+            <button id="exportExcel" class="btn btn-success btn-sm mb-3">匯出所有資料</button>
+            <div class="d-flex w-100" style="overflow-y: hidden;">
+                <ul class="nav nav-tabs flex-nowrap" id="myTab" role="tablist">
+                    @{ bool first_sheet = true;}
+                    @foreach (var item in Model)
+                    {
+                        string classSet = first_sheet == true ? "nav-link active" : "nav-link";
+                        string ariaSelected = first_sheet == true ? "true" : "false";
+                        <li class="nav-item">
+                            <button class="@classSet" id="@($"id_{item.Name.Replace(" ","_")}")" data-bs-toggle="tab" data-bs-target="@($"#section_{item.Name.Replace(" ","_")}")" aria-selected="@ariaSelected">@item.Name.ToString()</button>
+                        </li>
+                        first_sheet = false;
+                    }
+                </ul>
+            </div>
+
+            <div class="tab-content" id="myTabContent">
+                @{ bool first_table = true;}
+                @foreach (var item in Model)
+                {
+                    string classSet = first_table == true ? "tab-pane fade show active" : "tab-pane fade";
+                    <div class="@classSet" id="@($"section_{item.Name.Replace(" ","_")}")" role="tabpanel" aria-labelledby="@($"id_{item.Name.Replace(" ","_")}")">
+                        @if (item.Status)
+                        {
+                            @if (item.View.Count == 0)
+                            {
+                                <table class="table table-sm table-bordered table-striped table-hover">
+                                    <tr><td class='text-center'>無差異資料</td></tr>
+                                </table>
+                            }
+                            else
+                            {
+                                var headers = item.View.First().Keys.ToList();
+                                <table id="@($"data-{item.Name}")" data-fixcol="@item.FixColumn" class="table table-sm table-bordered table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            @foreach (var header in headers)
+                                            {
+                                                <th>@header</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var row in item.View)
+                                        {
+                                            <tr>
+                                                @foreach (var header in headers)
+                                                {
+                                                    var value = row.ContainsKey(header) ? row[header]?.ToString() ?? "" : "";
+                                                    <td title="@value">
+                                                        <div class="ellipsis-cell preserve-space">@value</div>
+                                                    </td>
+                                                }
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        }
+                        else
+                        {
+                            <div>@item.Error_Log</div>
+                        }
+                    </div>
+                    first_table = false;
+                }
+            </div>
+        </div>
+    }
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        flatpickr("#dateRange", {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            minDate: "2025-09-19",
+            defaultDate: ["@FromDate", "@ToDate"],
+            locale: {
+                rangeSeparator: " & "
+            }
+        });
+    </script>
+</body>
+
+</html>
+
+@section Scripts {
+    <!-- Bootstrap 5 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- DataTables v2 core + extensions -->
+    <link href="https://cdn.datatables.net/2.2.2/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.bootstrap5.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/buttons/3.0.0/css/buttons.bootstrap5.min.css" rel="stylesheet" />
+
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables v2 Core + Bootstrap 5 Integration -->
+    <script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/2.2.2/js/dataTables.bootstrap5.min.js"></script>
+    @*<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>*@
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+    <!-- FixedColumns for DataTables v2 -->
+    <script src="https://cdn.datatables.net/fixedcolumns/5.0.1/js/dataTables.fixedColumns.min.js"></script>
+    <script src="https://cdn.datatables.net/fixedcolumns/5.0.1/js/fixedColumns.bootstrap5.min.js"></script>
+
+    <!-- Buttons + Excel export for DataTables v2 -->
+    <script src="https://cdn.datatables.net/buttons/3.0.0/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.0.0/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/3.0.0/js/buttons.html5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            showLoading();
+            $("table[id^='data-']").each(function () {
+                const fixCol = parseInt($(this).data("fixcol")) || 0;
+
+                $(this).DataTable({
+                    scrollX: true,
+                    scrollY: 600,
+                    scrollCollapse: true,
+                    fixedColumns: {
+                        leftColumns: fixCol
+                    },
+                    columnDefs: [
+                        {
+                            targets: '_all',
+                            createdCell: function (td, cellData) {
+                                let content = String(cellData);
+
+                                if (content.includes("←")) {
+                                    $(td).css("background-color", "#FF5050");
+                                    content = content.replace("←", "");
+                                }
+                                else if (content.includes("→")) {
+                                    $(td).css("background-color", "#00FFFF");
+                                    content = content.replace("→", "");
+                                }
+
+                                $(td).html(content);
+
+                                $(td).css({
+                                    "white-space": "nowrap",
+                                    "overflow": "hidden",
+                                    "text-overflow": "ellipsis",
+                                    "max-width": "200px"
+                                });
+                            }
+                        }
+                    ]
+                });
+            });
+            setTimeout(function () {
+                hideLoading();
+                $("#All_Data").removeAttr("hidden");
+            }, 1000);
+        });
+
+        $("#exportExcel").on("click", function () {
+            const fromDate = "@FromDate";
+            const toDate = "@ToDate";
+            const workbook = XLSX.utils.book_new();
+
+            // 先展
+            const allTables = $("table[id^='data-']").map(function () {
+                return $(this).DataTable();
+            }).get();
+
+            // 儲存原搜尋/長度
+            const originalPageLengths = allTables.map(dt => dt.page.len());
+            const originalGlobalSearches = allTables.map(dt => dt.search());
+            const originalColumnSearches = allTables.map(dt => dt.columns().search().toArray());
+
+            allTables.forEach(dt => {
+                dt.search('');
+                dt.columns().every(function () {
+                    this.search('');
+                });
+                dt.draw();
+                dt.page.len(-1).draw();
+            });
+
+            setTimeout(() => {
+                $("table[id^='data-']").each(function () {
+                    const $table = $(this);
+                    const tableId = $table.attr("id");
+                    const sheetName = tableId.replace("data-", "").substring(0, 31);
+                    const dt = $table.DataTable();
+
+                    const headers = dt.columns().header().toArray().map(th => $(th).text());
+                    const data = dt.data().toArray();
+
+                    const cleanData = data.map(row => row.map(cell => {
+                        if (typeof cell === 'string') {
+                            return cell.replace(/<[^>]+>/g, '');
+                        }
+                        return cell;
+                    }));
+
+                    const sheetData = [headers, ...cleanData];
+
+                    const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+
+                    const range = XLSX.utils.decode_range(worksheet['!ref']);
+                    for (let R = range.s.r; R <= range.e.r; ++R) {
+                        for (let C = range.s.c; C <= range.e.c; ++C) {
+                            const cellAddress = { r: R, c: C };
+                            const cellRef = XLSX.utils.encode_cell(cellAddress);
+                            const cell = worksheet[cellRef];
+                            if (!cell || typeof cell.v !== 'string') continue;
+
+                            if (cell.v.includes("←")) {
+                                cell.s = {
+                                    fill: {
+                                        patternType: "solid",
+                                        fgColor: { rgb: "FF5050" }
+                                    }
+                                };
+                                cell.v = cell.v.replace("←", "");
+                            } else if (cell.v.includes("→")) {
+                                cell.s = {
+                                    fill: {
+                                        patternType: "solid",
+                                        fgColor: { rgb: "00FFFF" }
+                                    }
+                                };
+                                cell.v = cell.v.replace("→", "");
+                            }
+                        }
+                    }
+
+                    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+                });
+
+                const fileName = `PE垂直比對_${fromDate}_${toDate}.xlsx`;
+                XLSX.writeFile(workbook, fileName);
+
+                allTables.forEach((dt, i) => {
+                    dt.search(originalGlobalSearches[i]);
+                    dt.columns().every(function (index) {
+                        this.search(originalColumnSearches[i][index]);
+                    });
+                    dt.page.len(originalPageLengths[i]).draw();
+                });
+
+                allTables.forEach((dt, i) => dt.page.len(originalPageLengths[i]).draw());
+            }, 100);
+        });
+
+        $("#refreshBtn").on("click", function () {
+            $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: 'PE垂直比對工具(新版)',
+                    Remark: '刷新資料'
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+
+            $("#refresh_note").html("");
+            $.ajax({
+                url: "/DataProduct/ConfigDiffRecordsVerticalNew_Refresh",
+                type: 'GET',
+                beforeSend: function () {
+                    $("#refresh_note").html("<div>*正在刷新今日資料，刷新期間請勿搜尋當日資料*</div>");
+                    $("#refreshBtn").prop("disabled", true);
+                    $("#refreshIcon")
+                        .removeClass("bi-arrow-clockwise")
+                        .addClass("spinner-border spinner-border-sm")
+                },
+                success: function (response) {
+                    $("#refresh_note").html("<div style='color: green'>" + response.message + "</div>");
+                    $("#refreshTime").html("<div class='text-muted'>今日資料最新取得時間：" + response.refreshTime + "</div>");
+                },
+                error: function (xhr) {
+                    alert(xhr.responseText);
+                    $("#refresh_note").html("<div style='color: red'>刷新失敗</div>");
+                },
+                complete: function () {
+                    $("#refreshBtn").prop("disabled", false);
+                    $("#refreshIcon")
+                        .removeClass("spinner-border spinner-border-sm bi-arrow-repeat")
+                        .addClass("bi-arrow-clockwise");
+                }
+            });
+        })
+
+        $("#searchBtn").on("click", function () {
+            const dateRange = $("#dateRange").val();
+
+            if (!dateRange) {
+                alert("請選擇日期！");
+                return;
+            }
+
+            const dates = dateRange.split(" & ");
+            if (dates.length !== 2 || dates[0] === dates[1]) {
+                alert("請選擇兩個不同的日期範圍！");
+                return;
+            }
+
+            const fromDate = dates[0];
+            const toDate = dates[1];
+
+            $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: 'PE垂直比對工具(新版)',
+                    Remark: '查詢資料:' + fromDate + '~' + toDate
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+
+            window.location.href = `ConfigDiffRecordsVerticalNew?_from=${encodeURIComponent(fromDate)}&_to=${encodeURIComponent(toDate)}`;
+        });
+    </script>
+}

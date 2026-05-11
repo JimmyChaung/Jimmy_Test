@@ -1,0 +1,207 @@
+﻿@model admin_web.Models.ExcelViewModel
+
+<div style="margin-bottom:50px">
+    <button type="submit" id="Download" class="btn btn-primary">Download</button>
+    <div class="container" style="margin-top:30px">
+        @for (int i = 0; i < Model.Tabs.Count; i++)
+        {
+            var tab = Model.Tabs[i];
+            var tableId = $"table-{i}";
+            var paginationId = $"pagination-{i}";
+            var searchInputId = $"search-{i}";
+            var data = Json.Serialize(tab.DataList); 
+
+            <div class="table-container table-bordered mb-5">
+                <h3>@tab.Name</h3>
+                <div class="search-container mb-3">
+                    <input type="text" class="form-control" id="@searchInputId" placeholder="Search for records..">
+                </div>
+                <nav aria-label="Pagination">
+                    <ul class="pagination justify-content-center" id="@paginationId">
+                        <!-- Pagination will be populated by JavaScript -->
+                    </ul>
+                </nav>
+                <div class="table-responsive">
+                    <table class="table table-striped nowrap" style="table-layout: auto; width:100%;" id="@tableId">
+                        <thead class="thead-dark">
+                            <tr>
+                                @for (int j = 0; j < tab.HeaderList.Count; j++)
+                                {
+                                    <th data-index="@j" class="sortable">
+                                        @tab.HeaderList[j]
+                                        <span class="sort-icon"></span>
+                                    </th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody id="@tableId-body">
+                            <!-- Table body will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <script type="application/json" id="data-@i">
+                @Html.Raw(data)
+            </script>
+        }
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        function paginateTable(data, tableId, paginationId, searchInputId) {
+            const table = document.getElementById(tableId);
+            const pagination = document.getElementById(paginationId);
+            const searchInput = document.getElementById(searchInputId);
+
+            const rowsPerPage = 10; // 每頁顯示的行數
+            let currentPage = 1;
+            let filteredData = data;
+            let sortColumnIndex = null; // 目前排序的欄位索引
+            let sortOrder = 'asc'; // 升序或降序
+
+            function renderTable(page) {
+                const startIndex = (page - 1) * rowsPerPage;
+                const endIndex = startIndex + rowsPerPage;
+                const pageData = filteredData.slice(startIndex, endIndex);
+
+                const tbody = table.querySelector('tbody');
+                tbody.innerHTML = '';
+                pageData.forEach(row => {
+                    const tr = document.createElement('tr');
+                    row.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell;
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function renderPagination() {
+                pagination.innerHTML = '';
+                const pageCount = Math.ceil(filteredData.length / rowsPerPage);
+
+                const createPageLink = (page, text) => {
+                    const li = document.createElement('li');
+                    li.className = "page-item";
+                    if (page === currentPage) {
+                        li.classList.add('active');
+                    }
+                    const a = document.createElement('a');
+                    a.className = "page-link";
+                    a.textContent = text;
+                    a.href = "#";
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        currentPage = page;
+                        renderTable(currentPage);
+                        renderPagination();
+                    });
+                    li.appendChild(a);
+                    return li;
+                };
+
+                // Add "First" and "Previous" links
+                if (currentPage > 1) {
+                    pagination.appendChild(createPageLink(1, '«'));
+                    pagination.appendChild(createPageLink(currentPage - 1, '‹'));
+                }
+
+                // Add page numbers
+                const pageRange = 3; // Number of page links to show on each side of the current page
+                let startPage = Math.max(1, currentPage - pageRange);
+                let endPage = Math.min(pageCount, currentPage + pageRange);
+
+                if (startPage > 1) {
+                    pagination.appendChild(createPageLink(1, '1'));
+                    if (startPage > 2) {
+                        pagination.appendChild(createPageLink(startPage - 1, '...'));
+                    }
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    pagination.appendChild(createPageLink(i, i));
+                }
+
+                if (endPage < pageCount) {
+                    if (endPage < pageCount - 1) {
+                        pagination.appendChild(createPageLink(endPage + 1, '...'));
+                    }
+                    pagination.appendChild(createPageLink(pageCount, pageCount));
+                }
+
+                // Add "Next" and "Last" links
+                if (currentPage < pageCount) {
+                    pagination.appendChild(createPageLink(currentPage + 1, '›'));
+                    pagination.appendChild(createPageLink(pageCount, '»'));
+                }
+            }
+
+            function sortTable(columnIndex) {
+                sortOrder = (sortColumnIndex === columnIndex && sortOrder === 'asc') ? 'desc' : 'asc';
+                sortColumnIndex = columnIndex;
+                filteredData.sort((a, b) => {
+                    const valueA = a[columnIndex];
+                    const valueB = b[columnIndex];
+                    if (sortOrder === 'asc') {
+                        return valueA.localeCompare(valueB, undefined, { numeric: true });
+                    } else {
+                        return valueB.localeCompare(valueA, undefined, { numeric: true });
+                    }
+                });
+                currentPage = 1; // Reset to first page after sorting
+                renderTable(currentPage);
+                renderPagination();
+            }
+
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                filteredData = data.filter(row => row.some(cell => cell.toLowerCase().includes(searchTerm)));
+                currentPage = 1;
+                renderTable(currentPage);
+                renderPagination();
+            });
+
+            // Attach click event listeners to sortable headers
+            table.querySelectorAll('th.sortable').forEach(header => {
+                header.addEventListener('click', () => {
+                    const columnIndex = parseInt(header.getAttribute('data-index'));
+                    sortTable(columnIndex);
+                });
+            });
+
+            renderTable(currentPage);
+            renderPagination();
+        }
+
+        document.querySelectorAll('.table-container').forEach((container, index) => {
+            const tableId = `table-${index}`;
+            const paginationId = `pagination-${index}`;
+            const searchInputId = `search-${index}`;
+
+            const dataElement = document.getElementById(`data-${index}`);
+            const data = JSON.parse(dataElement.textContent);
+
+            paginateTable(data, tableId, paginationId, searchInputId);
+        });
+    });
+
+    // download
+    $(document).ready(function () {
+        $('#Download').on('click', function () {
+            var filePath = $('#filePath').text();
+            var output_path = "PE Report Tool/" + filePath.substring(0, filePath.lastIndexOf('/'));
+            var fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
+            console.log(output_path);
+            console.log(fileName);
+            
+            var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                '?output_path=' + encodeURIComponent(output_path) +
+                                '&FileName=' + encodeURIComponent(fileName);
+            window.location.href = downloadUrl;
+            
+        });
+    });
+</script>

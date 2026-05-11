@@ -1,0 +1,5 @@
+[filename]Hub,[filename_end]PriceStream,[key_contains]Final Name,Core Spread,Min Spread,Max Spread
+SG,MasonTestMT5Plain,OKBUSD,100,100,<EMPTY>
+SG,MT5_Vantage_Gold_.Inst,XAUUSD,-27,7,18
+SG,AT_Gold_Plain,XAUUSD,-16,19,29
+SG,PU_Gold_.s,XAUUSD,-12,26,36

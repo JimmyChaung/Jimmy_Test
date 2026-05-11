@@ -1,0 +1,247 @@
+﻿@model ExcelViewModel
+
+@{
+    ViewData["Title"] = "MT4 Manager周一比對";
+    List<string> FileNameList = ViewBag.FileNameList as List<string>;
+    string FileSelect = ViewBag.SelectDate as string;
+}
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        .o20 {
+            position: relative;
+            padding: 0.5em 1.2em;
+            border-radius: 1.5em;
+            border: 1px solid #CCC;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+            box-shadow: inset 1px 1px 0 rgba(255,255,255,1);
+            background: linear-gradient(#EFEFEF 0%, #FFF 50%, #EEE 50%, #FFF 100%);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>MT4 Manager周一比對</h1>
+
+    <!-- 主畫面表格 -->
+    <div id="MainContent" style="margin-bottom:50px;" hidden>
+        <div class="btn-group" role="group" aria-label="Basic example" style="margin-bottom:10px;">
+            <button type="submit" id="Download" class="btn btn-outline-primary" @(FileSelect != null ? "enabled" : "disabled")>Download File</button>
+            <button type="submit" id="sendDataButton" class="btn btn-outline-primary">Run</button>
+            <button type="submit" id="updatamanagerButton" class="btn btn-outline-primary">Update_Manager_Permission</button>
+        </div>
+        <div id="RunResult"></div>
+
+        @if (FileNameList.Count() > 0)
+        {
+            <div class="d-flex align-items-center">
+                <h5>資料日期：</h5>
+                <select id="fileSelect" class="form-select" style="width:250px">
+                    @foreach (var item in FileNameList)
+                    {
+                        if (FileSelect == item)
+                        {
+                            <option value="@item" selected>@item</option>
+                        }
+                        else
+                        {
+                            <option value="@item">@item</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div id="MyContent">
+                @foreach (var item in Model.Tabs)
+                {
+                    <h3 class="o20">@item.Name</h3>
+
+                    <table class="table table-striped table-bordered nowrap">
+                        <thead>
+                            <tr>
+                                @foreach (string Header in item.HeaderList)
+                                {
+                                    <th>@Header</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var Data in item.DataList)
+                            {
+                                <tr>
+                                    @foreach (var item2 in Data)
+                                    {
+                                        <td class="@(item2.Contains(";") ? "table-danger" : "")">@item2</td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="d-flex align-items-center">
+                <h5>無任何資料，請執行工具以產生新資料</h5>
+            </div>
+        }
+    </div>
+</body>
+
+@section Scripts {
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/fixedcolumns/5.0.1/js/dataTables.fixedColumns.js"></script>
+    <script src="https://cdn.datatables.net/fixedcolumns/5.0.1/js/fixedColumns.bootstrap5.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/5.0.1/css/fixedColumns.bootstrap5.css">
+
+    <script>
+        $(document).ready(function () {
+            showLoading();
+            setTimeout(function () {
+                hideLoading();
+                var table = $('#MyContent .table').DataTable({
+                    responsive: true,
+                    scrollX: true,
+                    scrollY: 600,
+                    scrollCollapse: true,
+                    fixedColumns: {
+                        leftColumns: 2,
+                    }
+                });
+
+                $('#MainContent').prop('hidden', false);
+
+                // 初始化
+                table.draw();
+            }, 1000);
+
+            $('#sendDataButton').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Manager 權限比對 MT4',
+                        Remark: '執行工具'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var formData = new FormData();
+                formData.append('tool_path', 'Compare_Manager_MT4');
+                formData.append('output_path', '_');
+                formData.append('exe_name', "manager_co.exe");
+                formData.append('DeleteAllFile', false);
+
+                $('#sendDataButton').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("RunExe", "Universal")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    beforeSend: function () {
+                        showLoading("正在執行工具");
+                    },
+                    success: function (response) {
+                        alert('工具執行完成！');
+                        location.reload(true);
+                    },
+                    error: function (error) {
+                        hideLoading();
+                        $('#sendDataButton').prop('disabled', false);
+                        $('#RunResult').html(`<p class="text-danger">${error.responseText}</p>`);
+                    }
+                });
+            });
+
+
+
+            //<button type="submit" id="updatamanagerButton" class="btn btn-outline-primary">Update_manager</button>
+            $('#updatamanagerButton').on('click', function () {
+                showLoading();
+                $.ajax({
+                    url: '/MondayTroubleshoot/Update_Permission',
+                    type: 'GET',
+                    data: { },
+                    success: function (response) {
+                        console.log("原始回應:", response);
+                        hideLoading();
+                    },
+                    error: function (xhr, status, error) {
+                        $('#RunResult').html(`<p class="text-danger">${error.responseText}</p>`);
+                        hideLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Update_Manager_Permission',
+                        Remark: '執行工具'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+            });
+        });
+
+        // 下拉式選單
+        $(document).ready(function () {
+            $('#fileSelect').change(function () {
+                var selectedFile = $(this).val();
+                window.location.href = `Compare_Manager_MT4?date=${encodeURIComponent(selectedFile)}`;
+            });
+        });
+
+        // download
+        $(document).on('click', '#Download', function () {
+            $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: 'Manager 權限比對 MT4',
+                    Remark: '下載檔案'
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+
+            var output_path = "Compare_Manager_MT4\\output";
+            var FileName = "MT4_Manager_" + "@FileSelect" + ".xlsx";
+            var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                              '?output_path=' + encodeURIComponent(output_path) +
+                              '&FileName=' + encodeURIComponent(FileName);
+            window.location.href = downloadUrl;
+        });
+    </script>
+}

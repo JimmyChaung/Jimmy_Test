@@ -1,0 +1,95 @@
+﻿@{
+    ViewData["Title"] = "工具FAQ";
+    var Navbar = ViewBag.Navbar as Dictionary<admin_web.Models.FAQ.Faq_Model.Navbar_Main_Model, List<admin_web.Models.FAQ.Faq_Model.Navbar_Sub_Model>>;
+    string Tool_Id = ViewBag.Tool_Id as string;
+}
+<html>
+<head>
+    <meta charset="utf-8" />
+</head>
+<body>
+    <div class="mt-4">
+        <div class="row">
+            @* Sidebar *@
+            <div class="faq-sidebar d-flex flex-column col-3 gap-2" style="height: max-content;" role="tablist">
+                <ul class="list-group list-group-flush mb-0 py-3 pt-md-1">
+                    @foreach (var entry in Navbar)
+                    {
+                        var toolList = entry.Value;
+                        var selected_condition = toolList.Any(tool => tool.ToolID == Tool_Id);
+                        string expanded_default = selected_condition ? "true" : "false";
+                        string collapsed_default = selected_condition ? "" : "collapsed";
+                        string collapse_default = selected_condition ? "show" : "";
+                        string icon_default = selected_condition ? "bi-chevron-down" : "bi-chevron-right";
+                        string faq_list_main_css = selected_condition ? "faq-list-main-selected" : "faq-list-main";
+                        <li class="mb-1 list-group-item">
+                            <button class="@faq_list_main_css d-inline-flex align-items-start @collapsed_default" data-bs-toggle="collapse" data-bs-target="#@entry.Key.ClassID-collapse" aria-expanded="@expanded_default">
+                                @entry.Key.ClassName <i class="bi @icon_default ms-auto"></i>
+                            </button>
+                            <div class="collapse @collapse_default" id="@entry.Key.ClassID-collapse">
+                                <ul class="list-unstyled fw-normal pb-1 small">
+                                    @foreach (var item in entry.Value)
+                                    {
+                                        string faq_list_item_css = item.ToolID == Tool_Id ? "faq-list-item-selected" : "faq-list-item";
+                                        <li>
+                                            <a href="?tool=@item.ToolID" class="@faq_list_item_css d-inline-flex align-items-start">
+                                                @item.ToolName
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+            @* Tool FAQ *@
+            <div class="faq-page col-9" style="min-height: 100vh;">
+                @if (Tool_Id != null)
+                {
+                    @await Html.PartialAsync("default")
+                }
+                else
+                {
+                    @foreach (var entry in Navbar)
+                    {
+                        var toolList = entry.Value;
+                        foreach (var item in toolList)
+                        {
+                            <script>window.location.href = '/Faq/FaqHomepage?tool=@item.ToolID';</script>
+                        }
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+@section Scripts{
+    <script>
+        $(document).ready(function () {
+            $('.faq-list-main[data-bs-toggle="collapse"]').on('click', function () {
+                var $icon = $(this).find('i.bi');
+                var $faqItem = $(this);
+
+                if ($icon.length) {
+                    $icon.toggleClass('bi-chevron-right bi-chevron-down');
+                }
+
+                $faqItem.toggleClass('faq-list-main faq-list-main-selected');
+            });
+
+            $('.faq-list-main-selected[data-bs-toggle="collapse"]').on('click', function () {
+                var $icon = $(this).find('i.bi');
+                var $faqItem = $(this);
+
+                if ($icon.length) {
+                    $icon.toggleClass('bi-chevron-down bi-chevron-right');
+                }
+
+                $faqItem.toggleClass('faq-list-main faq-list-main-selected');
+            });
+        });
+    </script>
+}

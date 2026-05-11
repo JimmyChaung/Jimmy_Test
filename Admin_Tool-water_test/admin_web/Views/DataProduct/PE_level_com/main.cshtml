@@ -1,0 +1,786 @@
+﻿@using admin_web.Models
+@{
+    ViewData["Title"] = "PE Level_comparison_tool";
+    List<string> fileContent = ViewBag.FileContent as List<string>;
+    List<FileModel.FileEntry> entries = ViewBag.entries as List<FileModel.FileEntry>;
+}
+
+@model admin_web.Models.DataProduct.Pe_setting.SymbolSettingViewModel
+
+
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- 引入 Choices.js 的 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+        }
+    </style>
+    <style>
+        table {
+            width: auto;
+            max-width: 100%;
+        }
+
+        th, td {
+            padding: 8px 12px;
+            white-space: nowrap;
+        }
+    </style>
+
+
+
+</head>
+
+<body>
+    <h1>PE Report</h1>
+
+    <ul class="nav nav-tabs">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#Instant_check" role="tab">即時排查</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#Weekly_check" role="tab">每周排查</a>
+        </li>
+    </ul>
+
+
+    <div class="tab-content mt-3">
+        <div class="tab-pane fade show active" id="Instant_check" role="tabpanel">
+
+            <button type="submit" id="Download" class="btn btn-outline-primary" enabled="">Download File</button>
+
+            <button id="refreshBtn" class="btn btn-outline-primary" enabled="">刷新資料庫</button>
+            <h2>請選擇內容：</h2>
+
+            <div>
+                <label>table</label>
+                <select id="interestSelect">
+                    <option value="MarketInformation">MarketInformation</option>
+                    <option value="PriceStream">PriceStream</option>
+                    <option value="AggregationConfig">AggregationConfig</option>
+                    <option value="ExecutionProfiles">ExecutionProfiles</option>
+                    <option value="Volumeband">Volumeband</option>
+                </select>
+            </div>
+
+            <div>
+                <label>PE Region</label>
+                <select id="skillSelect" multiple>
+                    <option value="NY">NY</option>
+                    <option value="LD">LD</option>
+                    <option value="TY">TY</option>
+                </select>
+            </div>
+
+            <div>
+                <label>選擇時間：</label>
+                <input type="date" id="timeSelect">
+            </div>
+
+            <div>
+                <label>KEY：</label>
+                <select id="languageSelect" multiple></select>
+            </div>
+
+
+            <br />
+            <button id="submitBtn">確認</button>
+
+            <hr />
+            <h3>你的選擇結果：</h3>
+            <div id="resultArea">尚未確認</div>
+
+            <div id="resultArea"></div>
+            <div id="tableArea" style="overflow-x: auto; max-width: 100%;"></div>
+            @*<div id="test_4456" style="overflow-x: auto; max-width: 100%;"></div>*@
+            <div id="test_4456" style="overflow-x: auto; max-width: 100%;display: none;"></div>
+        </div>
+        <!---->
+        <div class="tab-pane fade" id="Weekly_check" role="tabpanel">
+            <button id="refreshBtn2" class="btn btn-outline-primary" enabled="">刷新資料庫</button>
+            <h4>每周排查的資料</h4>
+            <button type="submit" id="Download_list" class="btn btn-outline-primary" enabled="">Download File</button>
+            <div>
+                <label>選擇時間：</label>
+                <input type="date" id="weekly_time">
+            </div>
+            <button id="get_weekly">送出</button>
+            <div id="message"></div>
+            <div id="weekly_table" style="overflow-x: auto; max-width: 100%; display:none;"></div>
+            @*<div id="weekly_table" style="overflow-x: auto; max-width: 100%; "></div>*@
+
+
+        </div>
+    </div>
+
+
+
+</body>
+
+@section Scripts {
+
+
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+    <!-- table type  -->
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+
+    <!-- jQuery (一定要) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- EXCEL SHEET -->
+    <!-- 加在你自己的 script 之前！ -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
+    <!-- Razor 把資料轉成 JSON 傳給 JavaScript -->
+    <script>
+        const aggregationData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AggregationconfigList));
+        const executionData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ExecutionprofilesList));
+        const marketInfoData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MarketinformationList));
+        const priceStreamData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PricestreamList));
+        const volumeBandData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VolumebandList));
+
+
+    </script>
+
+    <!-- JavaScript 控制邏輯 -->
+    <script>
+        const sourceSelect = document.getElementById("interestSelect");
+        const languageSelect = document.getElementById("languageSelect");
+
+        // 初始化 Choices
+        const interestChoices = new Choices('#interestSelect', { removeItemButton: true });
+        const skillChoices = new Choices('#skillSelect', { removeItemButton: true });
+
+        const choicesConfig = {
+            removeItemButton: true,
+            searchResultLimit: -1
+        };
+
+        const languageChoices = new Choices('#languageSelect', choicesConfig);
+        // interestSelect 切換觸發
+        sourceSelect.addEventListener("change", sendAjaxRequest);
+
+        // 頁面一載入就自動執行一次
+        window.addEventListener('DOMContentLoaded', function () {
+            sendAjaxRequest();
+        });
+
+        // languageChoices 監聽選擇變化
+        languageSelect.addEventListener('change', function () {
+            const selectedValues = languageChoices.getValue(true); // 取得選到的 value 陣列
+            if (selectedValues.includes('ALL') && selectedValues.length > 1) {
+                // 如果選到 ALL 又選了其他，保留 ALL，清掉其他
+                const newSelection = ['ALL'];
+                languageChoices.removeActiveItems(); // 清掉所有選擇
+                languageChoices.setChoiceByValue(newSelection); // 設回 ALL
+            } else if (!selectedValues.includes('ALL') && selectedValues.length > 0) {
+                // 如果選到其他（沒選 ALL），而且原本有 ALL，就確保 ALL 被移除
+                const filtered = selectedValues.filter(val => val !== 'ALL');
+                if (filtered.length !== selectedValues.length) {
+                    languageChoices.removeActiveItems(); // 清掉所有選擇
+                    languageChoices.setChoiceByValue(filtered); // 重新設其他選項
+                }
+            }
+        });
+
+        // 組好的 sendAjaxRequest function
+        function sendAjaxRequest() {
+            const selected = sourceSelect.value.trim();
+            languageChoices.clearStore();
+
+            let data = [];
+
+            switch (selected) {
+                case "AggregationConfig":
+                    console.log("AggregationConfig");
+                    data = aggregationData;
+                    break;
+                case "ExecutionProfiles":
+                    console.log("ExecutionProfiles");
+                    data = executionData;
+                    break;
+                case "MarketInformation":
+                    console.log("MarketInformation");
+                    data = marketInfoData;
+                    break;
+                case "PriceStream":
+                    console.log("PriceStream");
+                    data = priceStreamData;
+                    break;
+                case "Volumeband":
+                    console.log("Volumeband");
+                    data = volumeBandData;
+                    break;
+                default:
+                    data = [];
+            }
+
+            const choiceItems = [
+                { value: "ALL", label: "ALL" },
+                ...data.map(item => ({
+                    value: item.Name ?? item.Symbol ?? "unknown",
+                    label: item.Name ?? item.Symbol ?? "Unnamed"
+                }))
+            ];
+
+            languageChoices.setChoices(choiceItems, 'value', 'label', false);
+            languageChoices.setChoiceByValue("ALL");
+        }
+    </script>
+
+
+
+
+
+    <script>
+
+        document.getElementById('submitBtn').addEventListener('click', function (e) {
+
+            showLoading();
+
+            e.preventDefault(); // 先擋掉預設送出
+
+            // 抓選中的值
+            function getSelectedValues(selectId) {
+                const el = document.getElementById(selectId);
+                return Array.from(el.selectedOptions).map(o => o.value);
+            }
+
+            const data = {
+                sqlnames: getSelectedValues('interestSelect'),
+                regions: getSelectedValues('skillSelect'),
+                symbols: getSelectedValues('languageSelect'),
+                times: document.getElementById('timeSelect').value.trim()
+            };
+
+            // --- 新增這段檢查 ---
+            if (data.sqlnames.length === 0 || data.regions.length === 0 || data.symbols.length === 0 || data.times === '') {
+                alert('請確認「表格」、「地區」、「商品」、「時間」都有選擇或填寫！');
+
+                hideLoading();
+                return; // 不送出
+            }
+            // -------------------
+
+            // 發送 AJAX POST 請求
+            var ccc = fetch('/DataProduct/Level_comparison_tool', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(res => res.json())
+                .then(response => {
+                    // 更新頁面內容
+                    const html = `
+                                                                                                                                                                                                                                                                        <p><strong>表格：</strong>${response.sqlnames.join('、') || '無'}</p>
+                                                                                                                                                                                                                                                                        <p><strong>地區：</strong>${response.regions.join('、') || '無'}</p>
+                                                                                                                                                                                                                                                                        <p><strong>商品：</strong>${response.symbols.join('、') || '無'}</p>
+                                                                                                                                                                                                                                                                    `;
+                    finalResultData = response.finalResult;
+                    regions = response.regions;
+
+                    renderResultTables(finalResultData, regions);
+                    renderTable(finalResultData);
+                    document.getElementById('resultArea').innerHTML = html;
+
+                })
+                .catch(err => {
+                    console.error('錯誤發生：', err);
+                    document.getElementById('resultArea').innerText = '傳送失敗，請稍後再試。';
+                });
+
+            $.when(ccc).always(function () {
+                hideLoading();
+            });
+        });
+
+
+
+        function renderResultTables(finalResultData, regions) {
+            let tableHtml = "";
+
+            if (finalResultData.length > 0) {
+                let tableHtml = '';
+
+                finalResultData.forEach((entry, index) => {
+                    const { name, columns } = entry;
+                    if (!columns) return;
+
+                    const baseFields = [...new Set(Object.keys(columns).map(k => {
+                        const regionSuffix = regions.find(r => k.endsWith(r));
+                        return regionSuffix ? k.replace(regionSuffix, '') : k;
+                    }))];
+
+                    const tableId = `tableContent_${index}`;
+
+                    tableHtml += `
+                            <div class="table-wrapper" style="margin-bottom: 20px; border: 1px solid #ccc; border-radius: 6px;">
+                                <div onclick="toggleTable('${tableId}')"
+                                    style="cursor: pointer; background-color: #e3f2fd; padding: 10px 15px; font-weight: bold; font-size: 16px;">
+                                    <span id="${tableId}_icon">▶</span> ${name}
+                                </div>
+
+                                <div id="${tableId}" style="display: none; padding: 10px;">
+                                    <table class="table" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                                        <thead style="background-color: #f0f0f0;">
+                                            <tr>
+                                                <th style="max-width: 200px; word-wrap: break-word; white-space: normal;"></th>
+                                                <th colspan="${regions.length}" style="text-align: center; word-wrap: break-word; white-space: normal;">${name}</th>
+                                            </tr>
+                                            <tr>
+                                                <th style="max-width: 200px; word-wrap: break-word; white-space: normal;">欄位名稱</th>
+                                                ${regions.map(region => `<th>PE ${region}</th>`).join('')}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${baseFields.map(field => `
+                                                <tr>
+                                                    <td style="background-color: #fafafa; padding: 5px; border: 1px solid #ddd; max-width: 200px; word-wrap: break-word; white-space: normal;">
+                                                        ${field}
+                                                    </td>
+                                                    ${regions.map(region => {
+                        const value = columns[`${field}${region}`];
+                        return `<td style="max-width: 200px; word-break: break-word; white-space: normal; padding: 5px; border: 1px solid #ddd; vertical-align: top;">
+                                                            ${value ?? ''}
+                                                        </td>`;
+                    }).join('')}
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                });
+
+                document.getElementById('tableArea').innerHTML = tableHtml;
+            } else {
+                document.getElementById('tableArea').innerHTML = `
+                        <div style="margin: 10px 0; padding: 10px; background-color: #e3f2fd; border: 1px solid #ccc; border-radius: 6px; font-size: 16px;">
+                            PE平行比對皆相同，無異常。
+                        </div>
+                    `;
+            }
+        }
+
+
+        function toggleTable(id) {
+            const el = document.getElementById(id);
+            const icon = document.getElementById(`${id}_icon`);
+            const isVisible = el.style.display === 'block';
+
+            el.style.display = isVisible ? 'none' : 'block';
+            icon.innerText = isVisible ? '▶' : '▼';
+        }
+
+
+
+
+        document.getElementById("Download").addEventListener("click", function () {
+
+
+            showLoading();
+            const table = document.querySelector("#test_4456 table");
+            if (!table) {
+                alert("找不到表格！");
+                hideLoading();
+                return;
+            }
+
+            // 將 table 轉為 worksheet
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(table);
+            XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+            // 下載
+            var doload_xlsx = XLSX.writeFile(wb, "ExportedTable.xlsx");
+
+            $.when(doload_xlsx).always(function () {
+                hideLoading();
+            });
+
+        });
+        //table list-------------------------------------
+
+
+
+        //    const $tbody = $('#resultTable tbody');
+        function renderTable(finalResultData) {
+            const tableArea = document.getElementById("test_4456");
+
+            if (!Array.isArray(finalResultData) || finalResultData.length === 0) {
+                tableArea.innerHTML = "<p>無資料不一樣</p>";
+                return;
+            }
+
+            const regions = ["NY", "LD", "TY"];
+
+            const table = document.createElement("table");
+            table.className = "table table-bordered table-sm table-striped";
+
+            const thead = document.createElement("thead");
+            const trHead = document.createElement("tr");
+            ["Name", "欄位名稱", ...regions.map(r => `PE ${r}`)].forEach(title => {
+                const th = document.createElement("th");
+                th.textContent = title;
+                trHead.appendChild(th);
+            });
+            thead.appendChild(trHead);
+            table.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+
+            finalResultData.forEach(row => {
+                if (!row.columns) return;
+
+                // 萃取這個 row 的 base 欄位名（如 Id, AggregationRule）
+                const baseKeys = new Set(
+                    Object.keys(row.columns).map(k => k.slice(0, -2)) // 去掉地區後兩碼
+                );
+
+                baseKeys.forEach(baseKey => {
+                    // 確認這個 baseKey 在至少一個地區有資料
+                    const hasData = regions.some(region => row.columns[`${baseKey}${region}`] !== undefined);
+                    if (!hasData) return; // 沒有資料就跳過這一列
+
+                    const tr = document.createElement("tr");
+
+                    const nameTd = document.createElement("td");
+                    nameTd.textContent = row.name;
+                    tr.appendChild(nameTd);
+
+                    const keyTd = document.createElement("td");
+                    keyTd.textContent = baseKey;
+                    tr.appendChild(keyTd);
+
+                    regions.forEach(region => {
+                        const td = document.createElement("td");
+                        const value = row.columns[`${baseKey}${region}`];
+                        td.textContent = value !== undefined ? value : "";
+                        tr.appendChild(td);
+                    });
+
+                    tbody.appendChild(tr);
+                });
+            });
+
+            table.appendChild(tbody);
+            tableArea.innerHTML = "";
+            tableArea.appendChild(table);
+        }
+
+
+        //    if (data.length === 0) {
+        //--------------weekly report ------------------------                                                                                                                                                                                                                                                                                                                            //        $thead.append('<tr><th>無資料</th></tr>');
+        //    if (data.length === 0) {
+        //--------------weekly report ------------------------                                                                                                                                                                                                                                                                                                                            //        $thead.append('<tr><th>無資料</th></tr>');
+        document.getElementById('get_weekly').addEventListener('click', function () {
+            showLoading();
+            const data = {
+                times: document.getElementById('weekly_time').value
+            };
+
+            var get_weekly_check = fetch('/DataProduct/Level_comparison_weekly', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(res => res.json())
+                .then(response => {
+                    const container = document.getElementById('weekly_table');
+                    container.innerHTML = '';  // 清空之前的內容
+
+                    if (!Array.isArray(response) || response.length === 0) {
+                        container.innerHTML = "<p>沒有資料</p>";
+                        return;
+                    }
+
+                    response.forEach((item, index) => {
+                        const title = document.createElement("h3");
+                        title.textContent = `#${index + 1}：${item.sqlnames}`;
+                        container.appendChild(title);
+
+                        const table = document.createElement("table");
+                        table.className = "table table-bordered table-sm";
+                        table.style.marginBottom = "20px";
+
+                        const finalResult = item.finalResult || [];
+
+                        if (finalResult.length === 0) {
+                            const emptyRow = document.createElement("tr");
+                            const td = document.createElement("td");
+                            td.colSpan = 5;
+                            td.textContent = "⚠️ 資料設置都一樣，無不一樣";
+                            td.classList.add("text-center");
+                            emptyRow.appendChild(td);
+                            table.appendChild(emptyRow);
+                        } else {
+                            const thead = document.createElement("thead");
+                            const headRow = document.createElement("tr");
+
+                            // 表頭：Name, 欄位名稱, PE NY, PE LD, PE TY
+                            ["Name", "欄位名稱", "PE NY", "PE LD", "PE TY"].forEach(text => {
+                                const th = document.createElement("th");
+                                th.textContent = text;
+                                headRow.appendChild(th);
+                            });
+
+                            thead.appendChild(headRow);
+                            table.appendChild(thead);
+
+                            const tbody = document.createElement("tbody");
+
+                            finalResult.forEach(rowData => {
+                                const name = rowData.name;
+                                const columns = rowData.columns || {};
+
+                                // 把 columns 中所有 key 拆成 baseName + region
+                                const temp = {};
+
+                                Object.entries(columns).forEach(([key, value]) => {
+                                    const match = key.match(/^(.+)(NY|LD|TY)$/);
+                                    if (match) {
+                                        const baseName = match[1];
+                                        const region = match[2];
+
+                                        if (!temp[baseName]) temp[baseName] = {};
+                                        temp[baseName][region] = value;
+                                    }
+                                });
+
+                                // 每個 baseName 就是一列
+                                Object.entries(temp).forEach(([baseName, regionValues]) => {
+                                    const tr = document.createElement("tr");
+
+                                    const tdName = document.createElement("td");
+                                    tdName.textContent = name;
+                                    tr.appendChild(tdName);
+
+                                    const tdField = document.createElement("td");
+                                    tdField.textContent = baseName;
+                                    tr.appendChild(tdField);
+
+                                    ["NY", "LD", "TY"].forEach(region => {
+                                        const td = document.createElement("td");
+                                        td.textContent = regionValues[region] ?? "";
+                                        tr.appendChild(td);
+                                    });
+
+                                    tbody.appendChild(tr);
+                                });
+                            });
+
+                            table.appendChild(tbody);
+                        }
+
+                        container.appendChild(table);
+                    });
+
+                    //新增
+                    showSuccessMessage(); // 顯示訊息
+                })
+                .catch(err => {
+                    console.error('錯誤發生：', err);
+                    document.getElementById('weekly_table').innerText = '資料載入失敗，請稍後再試。';
+                });
+
+
+            $.when(get_weekly_check).always(function () {
+                hideLoading();
+            });
+        });
+
+
+        document.getElementById("Download_list").addEventListener("click", function () {
+            showLoading();
+
+            const tables = document.querySelectorAll("#weekly_table table");
+            if (tables.length === 0) {
+                alert("找不到任何表格！");
+                return;
+            }
+
+            const sheetNames = ["AggregationConfig", "ExecutionProfiles", "MarketInformation", "PriceStream", "Volumeband"];
+            const wb = XLSX.utils.book_new();
+
+            var Download_list_check = tables.forEach((table, index) => {
+                const ws = XLSX.utils.table_to_sheet(table);
+                const sheetName = sheetNames[index] || `表格${index + 1}`;
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+                if (sheetName === "AggregationConfig") {
+                    const range = XLSX.utils.decode_range(ws["!ref"]);
+                    const headerRow = range.s.r;
+
+                    const headers = [];
+                    for (let c = range.s.c; c <= range.e.c; ++c) {
+                        const cellRef = XLSX.utils.encode_cell({ r: headerRow, c });
+                        headers.push(ws[cellRef]?.v);
+                    }
+
+                    const nameIndex = headers.indexOf("Name");
+                    if (nameIndex === -1) return;
+
+                    const rowsByName = {};
+
+                    for (let r = headerRow + 1; r <= range.e.r; ++r) {
+                        const nameCell = XLSX.utils.encode_cell({ r, c: nameIndex });
+                        const nameValue = ws[nameCell]?.v;
+                        if (!nameValue) continue;
+
+                        if (!rowsByName[nameValue]) rowsByName[nameValue] = [];
+                        rowsByName[nameValue].push(r);
+                    }
+                }
+            });
+
+            var oufile = XLSX.writeFile(wb, "ExportedTables.xlsx");
+            // 等兩個 AJAX 都完成
+            $.when(Download_list_check, oufile).always(function () {
+                hideLoading();
+            });
+
+        });
+
+
+
+        function showSuccessMessage() {
+            const messageDiv = document.getElementById("message");
+            messageDiv.textContent = "✅ 已成功執行";
+            messageDiv.style.display = "block";
+
+            // 幾秒後自動隱藏（例如：3 秒）
+            setTimeout(() => {
+                messageDiv.style.display = "none";
+            }, 300000);
+        }
+
+
+        $("#refreshBtn").on("click", function () {
+
+            showLoading();
+
+            var logAjax = $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: 'PE水平比對工具',
+                    Remark: '刷新資料'
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+
+            $("#refresh_note").html("");
+            var refreshAjax = $.ajax({
+                url: "/DataProduct/ConfigDiffRecordsVertical_Refresh",
+                type: 'GET',
+                beforeSend: function () {
+                    $("#refresh_note").html("<div>*正在刷新今日資料，刷新期間請勿搜尋當日資料*</div>");
+                    $("#refreshBtn").prop("disabled", true);
+                    $("#refreshIcon")
+                        .removeClass("bi-arrow-clockwise")
+                        .addClass("spinner-border spinner-border-sm")
+                },
+                success: function (response) {
+                    $("#refresh_note").html("<div style='color: green'>" + response.message + "</div>");
+                    $("#refreshTime").html("<div class='text-muted'>今日資料最新取得時間：" + response.refreshTime + "</div>");
+                },
+                error: function (xhr) {
+                    alert(xhr.responseText);
+                    $("#refresh_note").html("<div style='color: red'>刷新失敗</div>");
+                },
+                complete: function () {
+                    $("#refreshBtn").prop("disabled", false);
+                    $("#refreshIcon")
+                        .removeClass("spinner-border spinner-border-sm bi-arrow-repeat")
+                        .addClass("bi-arrow-clockwise");
+                }
+            });
+            // 等兩個 AJAX 都完成
+            $.when(logAjax, refreshAjax).always(function () {
+                hideLoading();
+            });
+        })
+
+
+        $("#refreshBtn2").on("click", function () {
+
+            showLoading();
+
+            var logAjax = $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: 'PE水平比對工具',
+                    Remark: '刷新資料'
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+
+            $("#refresh_note").html("");
+            var refreshAjax = $.ajax({
+                url: "/DataProduct/ConfigDiffRecordsVertical_Refresh",
+                type: 'GET',
+                beforeSend: function () {
+                    $("#refresh_note").html("<div>*正在刷新今日資料，刷新期間請勿搜尋當日資料*</div>");
+                    $("#refreshBtn2").prop("disabled", true);
+                    $("#refreshIcon")
+                        .removeClass("bi-arrow-clockwise")
+                        .addClass("spinner-border spinner-border-sm")
+                },
+                success: function (response) {
+                    $("#refresh_note").html("<div style='color: green'>" + response.message + "</div>");
+                    $("#refreshTime").html("<div class='text-muted'>今日資料最新取得時間：" + response.refreshTime + "</div>");
+                },
+                error: function (xhr) {
+                    alert(xhr.responseText);
+                    $("#refresh_note").html("<div style='color: red'>刷新失敗</div>");
+                },
+                complete: function () {
+                    $("#refreshBtn2").prop("disabled", false);
+                    $("#refreshIcon")
+                        .removeClass("spinner-border spinner-border-sm bi-arrow-repeat")
+                        .addClass("bi-arrow-clockwise");
+                }
+            });
+            // 等兩個 AJAX 都完成
+            $.when(logAjax, refreshAjax).always(function () {
+                hideLoading();
+            });
+        })
+
+
+
+    </script>
+
+}

@@ -1,0 +1,476 @@
+﻿@{
+    var ServerConfig = ViewBag.ServerConfig as List<admin_web.Models.ServerModel.ServerRecord>;
+}
+
+<html>
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <!-- 工具表 -->
+    <div class="btn-group">
+        <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasScrolling" aria-controls="offcanvasScrolling">Server列表</button>
+    </div>
+
+    <hr />
+
+    <ul class="nav nav-tabs">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#AddK" role="tab">新增K線</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#EditK" role="tab">修補K線</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#DelK" role="tab">刪除K線</a>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3">
+        <div class="tab-pane fade show active" id="AddK" role="tabpanel">
+            <h4>Step1: 選擇Server</h4>
+            <select name="AddServerSelect" id="AddServerSelect">
+                <option value="" selected></option>
+                @foreach (var item in ServerConfig)
+                {
+                    <option value="@item.SERVER_NAME">@item.SERVER_NAME</option>
+                }
+            </select>
+            <br />
+            <div class="mb-3 col-md-4 p-0">
+                <label for="AddLoginInput" class="form-label">MetaTrader帳號</label>
+                <input type="text" class="form-control" id="AddLoginInput" name="AddLogin" placeholder="請輸入帳號" required />
+            </div>
+            <div class="mb-3 col-md-4 p-0">
+                <label for="AddPasswordInput" class="form-label">MetaTrader密碼</label>
+                <input type="password" class="form-control" id="AddPasswordInput" name="AddPassword" placeholder="請輸入密碼" required />
+            </div>
+            <br />
+            <h4>Step2: 上傳所有欲新增K線的商品檔案(商品名稱_時段.csv)</h4>
+            <div class="btn-toolbar" role="toolbar">
+                <div class="input-group me-2" role="group">
+                    <input type="file" class="form-control" name="file[]" multiple="multiple" required="required" draggable="true" id="AddFileInput" accept=".csv" />
+                </div>
+            </div>
+            <br />
+            <button type="button" class="btn btn-primary" id="PreviewAddButton">預覽</button>
+        </div>
+
+        <div class="tab-pane fade" id="EditK" role="tabpanel">
+            <h4>Step1: 製作檔案，用於確認當前Server的商品(.xlsx)</h4>
+            <div class="btn-toolbar" role="toolbar">
+                <div class="input-group me-2" role="group">
+                    <input type="file" class="form-control" id="EditFileInput1" accept=".xlsx" />
+                    <button type="button" class="btn btn-outline-primary" id="executeEditButton1">執行</button>
+                    <button type="submit" id="EditTemplateDownload" class="btn btn-outline-info">範本</button>
+                </div>
+            </div>
+            <br />
+            <h4>Step2: 將製作的檔案上傳，進行修補K線(.xlsx)</h4>
+            <div class="btn-toolbar" role="toolbar">
+                <div class="input-group me-2" role="group">
+                    <input type="file" class="form-control" id="EditFileInput2" accept=".xlsx" />
+                    <button type="button" class="btn btn-outline-primary" id="executeEditButton2">執行</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="DelK" role="tabpanel">
+            <h3>上傳欲刪除的K線資料(.xlsx)</h3>
+            <div class="btn-toolbar" role="toolbar">
+                <div class="input-group me-2" role="group">
+                    <input type="file" class="form-control" id="DelFileInput" accept=".xlsx" />
+                    <button type="button" class="btn btn-outline-primary" id="executeDelButton">執行</button>
+                    <button type="submit" id="DelTemplateDownload" class="btn btn-outline-info">範本</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* 新增K線Modal: 預覽上傳的檔案 *@
+    <div class="modal fade" id="PreviewAddModal" data-bs-keyboard="false" tabindex="-1" aria-labelledby="PreviewAddModal" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="PreviewAddModalHeader"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="AddFileList">
+                    @* 所有上傳檔案預覽顯示在這 *@
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" id="executeAddButton">確認</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <br />
+
+    <!-- Log Modal -->
+    <div class="modal fade" id="logModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="logModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logModalLabel">Log Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 回傳的 Log -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scrolling -->
+    <div class="offcanvas offcanvas-end" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="offcanvasScrolling" aria-labelledby="offcanvasScrollingLabel" style="width:500px;">
+        <div class="offcanvas-header">
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            <h5 class="offcanvas-title" id="offcanvasScrollingLabel">Server列表</h5>
+        </div>
+        <div class="offcanvas-body">
+            <div class="table-container">
+                <table class="table table-striped">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Server</th>
+                            <th>SQL</th>
+                            <th>Proxy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in ServerConfig)
+                        {
+                            <tr>
+                                <td>@row.SERVER_NAME</td>
+                                <td>@row.SQL_NAME</td>
+                                <td>@row.SERVER_PROXY</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+@section Scripts {
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+
+    <script>
+        // log modal
+        function LogTable(response) {
+            if (response.length === 0) {
+                $('#logModal .modal-body').html('<p>No data available.</p>');
+                $('#logModal').modal('show');
+                return 0;
+            }
+
+            // header
+            let tableContent = '<table class="table table-bordered">';
+            tableContent += '<thead><tr>';
+            const headers = Object.keys(response[0]);
+            headers.forEach(header => {
+                tableContent += `<th>${header}</th>`;
+            });
+            tableContent += '</tr></thead><tbody>';
+
+            // data
+            response.forEach(logEntry => {
+                tableContent += '<tr>';
+                headers.forEach(header => {
+                    tableContent += `<td>${logEntry[header] || ''}</td>`;
+                });
+                tableContent += '</tr>';
+            });
+            tableContent += '</tbody></table>';
+
+            $('#logModal .modal-body').html(tableContent);
+            $('#logModal').modal('show');
+            return 0;
+        }
+
+        $(document).ready(function () {
+            $('#PreviewAddButton').on('click', function () {
+                const selectedServer = $("#AddServerSelect option:selected").val();
+                const files = $('#AddFileInput')[0].files;
+
+                if (!selectedServer) {
+                    alert("請選擇欲新增的Server");
+                    return
+                }
+
+                if (files.length === 0) {
+                    alert("請上傳欲用於新增K線的檔案");
+                    return
+                }
+
+                let fileListHtml = "";
+                fileListHtml += '<ul>';
+                $.each(files, function (index, file) {
+                    fileListHtml += '<li>' + file.name + '</li>';
+                });
+                fileListHtml += '</ul>';
+                $('#AddFileList').html(fileListHtml);
+                $('#PreviewAddModalHeader').html("確認要在 " + selectedServer + " 新增以下商品的K線資料嗎？");
+
+                const modal = new bootstrap.Modal(document.getElementById('PreviewAddModal'));
+                modal.show();
+            });
+
+            $('#executeAddButton').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: '補K線工具 MT4',
+                        Remark: '新增K線'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                const modal = bootstrap.Modal.getInstance(document.getElementById('PreviewAddModal'));
+                modal.hide();
+
+                showLoading("Executing");
+
+                @* 整理資料給後端 *@
+                const formData = new FormData();
+                const files = $('#AddFileInput')[0].files;
+                const selectedServer = $("#AddServerSelect option:selected").val();
+                const login = $('#AddLoginInput').val();
+                const password = $('#AddPasswordInput').val();
+
+                if (!selectedServer) {
+                    alert("請選擇欲新增的Server");
+                    return
+                }
+
+                formData.append('server', selectedServer);
+                formData.append('login', login);
+                formData.append('password', password);
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('files', files[i]);
+                }
+
+
+                @* 傳給後端 *@
+                $.ajax({
+                    url: '/Mtapi/KBar_MT4_Add',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        hideLoading();
+                        LogTable(response);
+                    },
+                    error: function (error) {
+                        hideLoading();
+                        alert(error.responseText);
+                    }
+                });
+            });
+        });
+
+        $(document).ready(function () {
+            $('#executeEditButton1').click(function () {
+                showLoading("Executing");
+
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: '補K線工具 MT4',
+                        Remark: '製作檔案'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var fileInput = $('#EditFileInput1')[0];
+                var file = fileInput.files[0];
+
+                if (!file) {
+                    alert('請選擇文件');
+                    hideLoading();
+                    return;
+                }
+
+                var formData = new FormData();
+                formData.append('file', file);
+
+                $.ajax({
+                    url: '/Mtapi/KBar_MT4_Edit1',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        hideLoading();
+                        var output_path = "KBar_MT4\\output";
+                        var FileName = response;
+                        var downloadUrl = '@Url.Action("KBar_Download", "Mtapi")' +
+                                            '?output_path=' + encodeURIComponent(output_path) +
+                                            '&FileName=' + encodeURIComponent(FileName);
+                        window.location.href = downloadUrl;
+
+                    },
+                    error: function (error) {
+                        hideLoading();
+                        alert(error.responseText);
+                    }
+                });
+            });
+
+            $('#executeEditButton2').click(function () {
+                showLoading("Executing");
+
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: '補K線工具 MT4',
+                        Remark: '修補K線'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var fileInput = $('#EditFileInput2')[0];
+                var file = fileInput.files[0];
+
+                if (!file) {
+                    alert('請選擇文件');
+                    hideLoading();
+                    return;
+                }
+
+                var formData = new FormData();
+                formData.append('file', file);
+
+                $.ajax({
+                    url: '/Mtapi/KBar_MT4_Edit2',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        hideLoading();
+                        LogTable(response);
+                    },
+                    error: function (error) {
+                        hideLoading();
+                        alert(error.responseText);
+                    }
+                });
+            });
+
+            $('#executeDelButton').click(function () {
+                showLoading("Executing");
+
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: '補K線工具 MT4',
+                        Remark: '刪除K線'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var fileInput = $('#DelFileInput')[0];
+                var file = fileInput.files[0];
+
+                if (!file) {
+                    alert('請選擇文件');
+                    hideLoading();
+                    return;
+                }
+
+                var formData = new FormData();
+                formData.append('file', file);
+
+                $.ajax({
+                    url: '/Mtapi/KBar_MT4_Del',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        hideLoading();
+                        LogTable(response);
+                    },
+                    error: function (error) {
+                        hideLoading();
+                        alert(error.responseText);
+                    }
+                });
+            });
+
+            $('#EditTemplateDownload').on('click', function () {
+                var output_path = "KBar_MT4\\template";
+                var fileName = "Edit_Template.xlsx";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                    '?output_path=' + encodeURIComponent(output_path) +
+                                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+
+            $('#DelTemplateDownload').on('click', function () {
+                var output_path = "KBar_MT4\\template";
+                var fileName = "Del_Template.xlsx";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                    '?output_path=' + encodeURIComponent(output_path) +
+                                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+
+            $('#ServerTemplateDownload').on('click', function () {
+                var output_path = "KBar_MT4\\template";
+                var fileName = "mt4_server.csv";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                    '?output_path=' + encodeURIComponent(output_path) +
+                                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+        })
+    </script>
+}
+
+
+

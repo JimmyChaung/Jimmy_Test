@@ -1,0 +1,592 @@
+﻿@{
+    ViewData["Title"] = "帳號管理";
+}
+
+<style>
+
+    /* 基本按鈕樣式 */
+    .button-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .edit-btn, .delete-btn {
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    /* 編輯按鈕樣式 */
+    .edit-btn {
+        color: #333; /* 黑色 */
+    }
+
+    /* 刪除按鈕樣式 */
+    .delete-btn {
+        color: #FF4500; /* 橘紅色 */
+    }
+
+    /* hover 效果 */
+    .edit-btn:hover {
+        color: #666;
+    }
+
+    .delete-btn:hover {
+        color: #FF6347; /* 更亮的橘紅色 */
+    }
+
+    .search-input {
+        background: url('https://cdn.jsdelivr.net/npm/bootstrap-icons/icons/search.svg') no-repeat right 10px center;
+        background-size: 16px;
+        padding-right: 30px; /* 調整內邊距，避免文字和圖示重疊 */
+    }
+
+    .icon-large-red-background {
+        background-color: white; /* 紅色背景 */
+        color: red; /* 圖示顏色設為白色 */
+        padding: 8px; /* 內邊距讓背景更大 */
+        border-radius: 5px; /* 添加圓角 */
+        font-size: 5rem; /* 調整圖示大小 */
+        display: inline-flex; /* 讓背景與圖示大小一致 */
+        align-items: center; /* 置中對齊圖示 */
+        justify-content: center; /* 置中對齊圖示 */
+    }
+
+
+    .modal-content {
+        border: none; /* 去掉模态框边框 */
+        border-radius: 0; /* 去掉圆角 */
+    }
+
+    .modal-header {
+        display: none; /* 隐藏标题 */
+    }
+
+    .modal-body {
+        border-bottom: none; /* 去掉底部边框 */
+        padding-bottom: 0; /* 去掉底部内边距 */
+    }
+
+    .modal-footer {
+        border-top: none;
+        border-top: none !important; /* 移除 modal-footer 上部邊框 */
+
+        border: none; /* 去掉底部线 */
+        display: flex;
+        justify-content: center; /* 底部按钮居中 */
+        padding-top: 0; /* 去掉顶部内边距 */
+        margin-top: 0; /* 去掉顶部外边距 */
+    }
+
+        .modal-footer .btn {
+            margin: 0 5px; /* 按钮之间添加少量间距 */
+        }
+
+
+
+    .dropdown-menu {
+        max-height: 300px;
+        overflow-y: auto;
+        width: 100%;
+    }
+
+    .dropdown-item input[type="checkbox"] {
+        margin-right: 8px;
+    }
+
+    .dropdown-divider {
+        padding: 0;
+        margin: 0;
+    }
+
+    .dropdown-header {
+        font-weight: bold;
+        font-size: 0.9rem;
+        color: #6c757d;
+        padding-top: 8px;
+        padding-bottom: 4px;
+    }
+
+    .dropdown-toggle {
+        width: 100%;
+        max-width: 200px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="~/js/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+
+<link href="~/css/coreui.min.css" rel="stylesheet" />
+<script src="~/js/coreui.min.js"></script>
+<script src="~/js/coreui.bundle.min.js"></script>
+
+
+
+
+test
+
+
+<div class="container mt-5">
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="dropdownButton">
+            Select...
+        </button>
+
+        <ul class="dropdown-menu p-2">
+            <!-- Select all option -->
+            <li><label class="dropdown-item"><input type="checkbox" id="selectAll"> Select all options</label></li>
+            <li><hr class="dropdown-divider"></li>
+
+            <!-- Frontend options -->
+            <li><label class="dropdown-item"><input type="checkbox" value="Angular"> Angular</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" value="Bootstrap"> Bootstrap</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" value="React.js"> React.js</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" value="Vue.js"> Vue.js</label></li>
+
+            <!-- Backend section header -->
+            <li><span class="dropdown-header">BACKEND</span></li>
+            <li><label class="dropdown-item"><input type="checkbox" value="Django"> Django</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" value="Laravel"> Laravel</label></li>
+            <li><label class="dropdown-item"><input type="checkbox" value="Node.js"> Node.js</label></li>
+        </ul>
+    </div>
+</div>
+
+
+
+
+
+<br />
+<br />
+<br />
+
+角色權限
+
+<div style="display: flex; gap: 10px; align-items: center;">
+    <span>
+        <input class="form-control search-input" list="datalistOptions" id="exampleDataList" placeholder="Type to search..." style="width: 300px;">
+        <datalist id="datalistOptions">
+            <option value="San Francisco1"></option>
+            <option value="New York"></option>
+            <option value="Seattle"></option>
+            <option value="Los Angeles"></option>
+            <option value="Chicago"></option>
+        </datalist>
+    </span>
+
+    <span>
+        <select class="form-select" style="width: 200px;">
+            <option selected>請選擇前台</option>
+            <option value="1">角色 1</option>
+            <option value="2">角色 2</option>
+            <option value="3">角色 3</option>
+        </select>
+    </span>
+
+    <span>
+        <select class="form-select" style="width: 200px;">
+            <option selected>請選擇後台</option>
+            <option value="1">角色 1</option>
+            <option value="2">角色 2</option>
+            <option value="3">角色 3</option>
+        </select>
+    </span>
+    <span>
+        <button class="btn btn-primary" style="width: 100px; height: 40px; font-size: 16px;">
+            搜尋
+        </button>
+    </span>
+</div>
+
+
+<div style="display: flex; gap: 10px; align-items: center;">
+    <span>
+        <button class="btn btn-primary" style="width: 130px; height: 40px; font-size: 16px;" data-bs-toggle="modal" data-bs-target="#exampleModal">
+            <i class="bi bi-plus-lg"></i> 新增角色
+        </button>
+    </span>
+</div>
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col" onclick="sortTable(0)">角色</th>
+            <th scope="col" onclick="sortTable(1)">前台權限(單選)<i class="bi bi-exclamation-circle red-icon" style="color: red;" data-toggle="tooltip" data-placement="top" title="1.景可執行:xxx<br />2.不可執行...."></i></th>
+            <th scope="col" onclick="sortTable(2)">後台權限(複選)<i class="bi bi-exclamation-circle red-icon" style="color: red;" data-toggle="tooltip" data-placement="top" title="這是一個驚嘆號"></i></th>
+            <th scope="col" onclick="sortTable(3)">備註</th>
+            <th scope="col" onclick="sortTable(4)">編輯區</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <th scope="row">管理員</th>
+            <td>
+                <label>
+                    <input type="checkbox" name="interest" value="音樂">僅執行
+                </label><br>
+                <label>
+                    <input type="checkbox" name="interest" value="音樂">可編輯欄位
+                </label><br>
+            </td>
+            <td>
+                <label>
+                    <input type="checkbox" name="interest" value="音樂"> 音樂
+                </label>
+                <label>
+                    <input type="checkbox" name="interest" value="音樂"> 音樂
+                </label>
+                <label>
+                    <input type="checkbox" name="interest" value="音樂"> 音樂
+                </label>
+                <label>
+                    <input type="checkbox" name="interest" value="音樂"> 音樂
+                </label>
+
+                <br>
+            </td>
+            <td>
+                <h6>test account</h6>
+            </td>
+            <td>
+                <span>
+                    <span class="edit-btn" data-bs-toggle="modal" data-bs-target="#editModal">編輯</span>
+                    <span class="delete-btn" data-bs-toggle="modal" data-bs-target="#deleteModal">刪除</span>
+                </span>
+
+            </td>
+        </tr>
+        <tr>
+            <th scope="row">管理員</th>
+            <td>
+                <label>
+                    <input type="checkbox" name="interest" value="音樂"> 音樂
+                </label><br>
+            </td>
+            <td>
+                <label>
+                    <input type="checkbox" name="interest" value="音樂"> 音樂
+                </label>
+                <label>
+                    <input type="checkbox" name="interest" value="音樂"> 音樂
+                </label>
+                <label>
+                    <input type="checkbox" name="interest" value="音樂"> 音樂
+                </label>
+                <label>
+                    <input type="checkbox" name="interest" value="音樂"> 音樂
+                </label>
+
+                <br>
+            </td>
+            <td>
+                <h6>test account</h6>
+            </td>
+            <td>
+                <span>
+                    <span class="edit-btn" data-bs-toggle="modal" data-bs-target="#editModal">編輯</span>
+                    <span class="delete-btn" data-bs-toggle="modal" data-bs-target="#deleteModal">刪除</span>
+                </span>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+
+<!--add account modal-->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Add Account</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="recipient-name" class="col-form-label">角色名稱<span style="color: red;">*</span></label>
+                        <input type="text" class="form-control" id="recipient-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message-text" class="col-form-label">前台權限(單選)<span style="color: red;">*</span></label>
+                        <input type="text" class="form-control" id="recipient-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message-text" class="col-form-label">後台權限(複選)<span style="color: red;">*</span></label>
+                        <input type="text" class="form-control" id="recipient-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="fruits">角色備註<span style="color: red;">*</span></label>
+                        <select class="form-select form-select-lg mb-3" aria-label="Large select example">
+                            <option selected>管理員</option>
+                            <option value="1">FAQ編輯者</option>
+                            <option value="2">一般使用者</option>
+                            <option value="3">僅查詢</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer w-100 d-flex justify-content-center">
+                <button type="button" class="btn btn-primary" style="width: 150px;">新增</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- edit account modal-->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Account</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="recipient-name" class="col-form-label">ID</label>
+                        <input type="text" class="form-control" id="recipient-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message-text" class="col-form-label">暱稱</label>
+                        <input type="text" class="form-control" id="recipient-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message-text" class="col-form-label">Email</label>
+                        <input type="text" class="form-control" id="recipient-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="fruits">角色管理</label>
+                        <select class="form-select form-select-lg mb-3" aria-label="Large select example">
+                            <option selected>Open this select menu</option>
+                            <option value="1">One</option>
+                            <option value="2">Two</option>
+                            <option value="3">Three</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">新噌</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!--delete account modal-->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="border: none;">
+                <button type="button" style="border: none;" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body  text-center" style="border: none;">
+                <i class="bi bi-exclamation-triangle-fill icon-large-red-background ms-2"></i>
+                <h3>該操作無法復原</h3>
+                <h6>您確定要刪除嗎??</h6>
+            </div>
+            <div class="modal-footer justify-content-center" style="display: flex; justify-content: center;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" style="background-color: red;">刪除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<br />
+<br />
+
+<!-- Confirm Activation/Deactivation modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <!-- <i class="bi bi-exclamation-triangle-fill icon-large-red-background" style="font-size: 50px; color: red;"></i> -->
+                <i id="exclamationIcon" class="bi bi-exclamation-circle-fill" style="font-size: 50px; color: red;"></i>
+
+                <h3 id="modalTitle">此操作將影響此帳號使用</h3>
+                <h6 id="modalMessage">您確定要進行此操作嗎?</h6>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: center;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cancelAction()">取消</button>
+                <button type="button" id="confirmButton" class="btn" data-bs-dismiss="modal" onclick="confirmAction()">確定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="~/js/popper.min.js"></script>
+<script>
+
+    $(document).ready(function () {
+        let toggleSwitch = document.getElementById('toggleSwitch');
+        let isCheckedInitially;
+
+        function showConfirmModal() {
+            isCheckedInitially = toggleSwitch.checked;
+
+            const confirmButton = document.getElementById("confirmButton");
+            const exclamationIcon = document.getElementById("exclamationIcon");
+
+            if (isCheckedInitially) {
+                document.getElementById("modalTitle").innerText = "該操作將影響此帳號使用";
+                document.getElementById("modalMessage").innerText = "您確定要啟用此帳號嗎？";
+                confirmButton.classList.remove("btn-danger");
+                confirmButton.classList.add("btn-primary");
+                exclamationIcon.style.color = "blue";
+
+            } else {
+                document.getElementById("modalTitle").innerText = "該操作將影響此帳號使用";
+                document.getElementById("modalMessage").innerText = "您確定要停用此帳號嗎？";
+                confirmButton.classList.remove("btn-primary");
+                confirmButton.classList.add("btn-danger");
+                exclamationIcon.style.color = "red";
+
+            }
+
+            $('#confirmModal').modal('show');
+            toggleSwitch.checked = !toggleSwitch.checked;
+        };
+
+        function confirmAction() {
+            toggleSwitch.checked = isCheckedInitially;
+
+            if (toggleSwitch.checked) {
+                alert("帳號已啟用！");
+            } else {
+                alert("帳號已停用！");
+            }
+        };
+
+        function cancelAction() {
+            toggleSwitch.checked = !isCheckedInitially;
+        }
+
+        window.showConfirmModal = showConfirmModal;
+        window.confirmAction = confirmAction;
+        window.cancelAction = cancelAction;
+    });
+
+
+</script>
+
+<script>
+    let currentSortColumn = -1;
+    let ascending = true;
+
+    function sortTable(columnIndex) {
+        const table = document.querySelector("table tbody");
+        const rows = Array.from(table.rows);
+        const headers = document.querySelectorAll("th");
+
+        // 重置所有欄位的排序圖示
+        headers.forEach(header => {
+            const sortIcon = header.querySelector(".sort-icon");
+            if (sortIcon) {
+                sortIcon.textContent = "▼"; // 設為初始狀態
+            }
+        });
+
+        // 切換排序方向
+        if (currentSortColumn === columnIndex) {
+            ascending = !ascending;
+        } else {
+            currentSortColumn = columnIndex;
+            ascending = true;
+        }
+
+        // 更新當前欄位的排序圖示
+        const currentHeader = headers[columnIndex];
+        const currentSortIcon = currentHeader.querySelector(".sort-icon");
+        if (currentSortIcon) {
+            currentSortIcon.textContent = ascending ? "▲" : "▼";
+        }
+
+        // 排序邏輯
+        rows.sort((a, b) => {
+            const aText = a.cells[columnIndex].textContent.trim();
+            const bText = b.cells[columnIndex].textContent.trim();
+            const isNumeric = !isNaN(aText) && !isNaN(bText);
+
+            if (isNumeric) {
+                return ascending ? aText - bText : bText - aText;
+            } else {
+                return ascending
+                    ? aText.localeCompare(bText, 'zh-Hant-TW')
+                    : bText.localeCompare(aText, 'zh-Hant-TW');
+            }
+        });
+
+        // 重新渲染表格內容
+        table.append(...rows);
+    }
+</script>
+
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+</script>
+
+<script>
+    // Select all functionality
+    document.getElementById('selectAll').addEventListener('change', function () {
+        const checkboxes = document.querySelectorAll('.dropdown-menu input[type="checkbox"]:not(#selectAll)');
+        checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+        updateButtonText();
+    });
+
+    // Update button text based on selected options
+    document.querySelectorAll('.dropdown-menu input[type="checkbox"]').forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            if (this.id !== 'selectAll') {
+                document.getElementById('selectAll').checked = Array.from(document.querySelectorAll('.dropdown-menu input[type="checkbox"]:not(#selectAll)')).every(input => input.checked);
+            }
+            updateButtonText();
+        });
+    });
+
+    function updateButtonText() {
+        const selectedOptions = [];
+        document.querySelectorAll('.dropdown-menu input[type="checkbox"]:checked:not(#selectAll)').forEach(function (selected) {
+            selectedOptions.push(selected.value);
+        });
+
+        // If the number of selected options exceeds a certain limit, show the count
+        const maxLength = 3; // Adjust this value to control when to switch to count
+        const button = document.getElementById('dropdownButton');
+
+        if (selectedOptions.length > maxLength) {
+            button.textContent = `Selected: ${selectedOptions.length} items`;
+        } else {
+            button.textContent = selectedOptions.length > 0
+                ? `Selected: ${selectedOptions.join(', ')}`
+                : 'Select...';
+        }
+    }
+</script>

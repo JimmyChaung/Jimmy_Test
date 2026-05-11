@@ -1,0 +1,166 @@
+﻿@{
+    string OutputFile = ViewBag.OutputFile as string;
+}
+<head>
+    <meta charset="utf-8" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <h4>Input File(.xlsx)</h4>
+    <div class="input-group mb-3" style="width:500px">
+        <button type="submit" id="uploadInput" class="btn btn btn-outline-primary">上傳</button>
+        <input id="inputFile" type="file" name="inputFile" accept=".xlsx" class="form-control" />
+    </div>
+    <div id="uploadInputResult" style="min-height: 50px; padding-top: 10px;"></div>
+
+    <div class="btn-group" role="group" aria-label="Basic example">
+        <button type="submit" id="sendDataButton" class="btn btn-outline-primary">執行</button>
+        <button type="submit" id="Download" class="btn btn-primary" disabled></button>
+    </div>
+</body>
+
+@section Scripts {
+    <script>
+        function check_output() {
+            return new Promise(function (resolve, reject) {
+                $.ajax({
+                    url: '@Url.Action("Holiday_CheckOutput", "DataProduct")',
+                    type: 'GET',
+                    success: function (response) {
+                        if (response.success) {
+                            $("#Download").prop("disabled", false);
+                            $("#Download").text(`下載: ${response.fileName}`);
+                            resolve("工具執行完成");
+                        } else {
+                            $("#Download").prop("disabled", true);
+                            $("#Download").text("下載");
+                            resolve("產出檔案時發生錯誤，請檢查上傳的檔案模板及格式是否正確");
+                        }
+                    },
+                    error: function (error) {
+                        alert("檢查檔案時發生錯誤");
+                        reject(error);
+                    }
+                });
+            });
+        }
+
+        $(document).ready(function () {
+            check_output();
+
+            // input
+            $('#uploadInput').on('click', function () {
+                var formData = new FormData();
+                var fileInput = document.getElementById('inputFile');
+                formData.append('file', fileInput.files[0]);
+                formData.append('del_all', true);
+                formData.append('path', 'Holiday Tool\\input_file');
+
+                $.ajax({
+                    url: '@Url.Action("UploadFile", "Universal")', // 呼叫Controller
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        $('#uploadInputResult').html(`<p>${response}</p>`);
+                    },
+                    error: function (error) {
+                        $('#uploadInputResult').html(`<p class="text-danger">${error.responseText}</p>`);
+                    }
+                });
+            });
+
+            // exe
+            $('#sendDataButton').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Holiday檔案製作',
+                        Remark: '執行工具'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var formData = new FormData();
+                formData.append('tool_path', 'Holiday Tool');
+                formData.append('output_path', 'output_file');
+                formData.append('exe_name', "main.exe");
+                formData.append('DeleteAllFile', true);
+
+                $('#uploadInput').prop('disabled', true);
+                $('#uploadEdit').prop('disabled', true);
+                $('#sendDataButton').prop('disabled', true);
+                $('#inputFile').prop('disabled', true);
+                $('#Download').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("RunExe", "Universal")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    beforeSend: function () {
+                        showLoading("正在執行 Holiday 工具");
+                    },
+                    success: function (response) {
+                        $('#uploadInput').prop('disabled', false);
+                        $('#uploadEdit').prop('disabled', false);
+                        $('#sendDataButton').prop('disabled', false);
+                        $('#inputFile').prop('disabled', false);
+
+                        check_output().then(function (msg) {
+                            alert(msg);
+                        }).catch(function (error) {
+                            console.error("工具執行時發生錯誤");
+                        });
+
+                        hideLoading();
+                    },
+                    error: function (error) {
+                        hideLoading();
+                        alert("工具發生錯誤");
+                        $('#uploadInput').prop('disabled', false);
+                        $('#uploadEdit').prop('disabled', false);
+                        $('#sendDataButton').prop('disabled', false);
+                        $('#inputFile').prop('disabled', false);
+                    }
+                });
+            });
+        });
+
+        // download
+        $(document).on('click', '#Download', function () {
+            $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: 'Holiday檔案製作',
+                    Remark: '下載檔案'
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+
+            var output_path = "Holiday Tool\\output_file";
+            var zipFileName = "Holiday.zip";
+            var downloadUrl = '@Url.Action("DownloadZip", "Universal")' +
+                              '?output_path=' + encodeURIComponent(output_path) +
+                              '&zipFileName=' + encodeURIComponent(zipFileName);
+            window.location.href = downloadUrl;
+        });
+    </script>
+}

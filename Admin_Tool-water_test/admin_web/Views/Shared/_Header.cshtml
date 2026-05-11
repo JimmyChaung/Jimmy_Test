@@ -1,0 +1,60 @@
+﻿<nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow p-2 mb-3">
+    <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand" href="/Home/Index">System Risk tools</a>
+
+        <div class="d-flex align-items-center">
+            <div class="search-wrapper position-relative me-3">
+                <input id="toolSearchInput" type="text" class="form-control" placeholder="搜尋工具" aria-label="Search" style="width: 300px;">
+                <ul id="toolSearchMenu" class="dropdown-menu position-absolute" aria-labelledby="dropdownMenuLink" style="width: 100%; top: 100%; left: 0;">
+                    @* 搜尋選項 *@
+                </ul>
+            </div>
+
+            <div class="dropdown">
+                <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="https://github.com/mdo.png" alt="mdo" width="32" height="32" class="rounded-circle"> David
+                </a>
+                <ul class="dropdown-menu text-small" aria-labelledby="dropdownUser">
+                    <li><a class="dropdown-item" href="#">Profile</a></li>
+                    <li><a class="dropdown-item" href="#">Setting</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/Home/Logout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<script>
+    $(document).ready(function () {
+        $.ajax({
+            type: "POST",
+            url: "/Home/SearchMenu",
+            success: function (response) {
+                const toolList = response;
+                $('#toolSearchInput').on('keyup', function () {
+                    const query = $(this).val().toLowerCase(); // 轉小寫
+                    const filteredTools = toolList.filter(tool => tool.name.toLowerCase().includes(query));
+
+                    $('#toolSearchMenu').empty();
+
+                    if (query.length > 0) {
+                        if (filteredTools.length > 0) {
+                            filteredTools.forEach(tool => {
+                                $('#toolSearchMenu').append(`<li><a class="dropdown-item" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;" href="${tool.href}">${tool.name}</a></li>`);
+                            });
+                        } else {
+                            $('#toolSearchMenu').append(`<li class="dropdown-item text-muted">查無工具</li>`);
+                        }
+                        $('#toolSearchMenu').show();
+                    } else {
+                        $('#toolSearchMenu').hide();
+                    }
+                });
+            },
+            error: function (error) {
+                console.error("無法取得工具清單", error);
+            }
+        });
+    });
+</script>

@@ -1,0 +1,185 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+
+
+<form class="form-wrap">
+    <!-- Section 1: Account -->
+    <div class="section">
+        <div class="section-header">
+            <div class="section-dot"></div>
+            <span class="section-title">Account Setup</span>
+        </div>
+        <div class="section-body">
+            <div class="field">
+                <label class="field-label">Server</label>
+                <select id="server_list" name="server_list">
+                    <option value="NULL">-- NULL --</option>
+                </select>
+            </div>
+            <div class="field">
+                <label class="field-label">Group</label>
+                <select id="group_list" name="group_list">
+                    <option value="NULL">-- NULL --</option>
+                </select>
+            </div>
+            <div class="field">
+                <label class="field-label">Leverage</label>
+                <input type="text" id="leverage_value" name="leverage_value" placeholder="e.g. 1:100">
+            </div>
+            <div class="field">
+                <label class="field-label">Login</label>
+                <input type="text" id="login_value" name="login_value" placeholder="Account Volume" required>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="section-body">
+            <div class="field">
+                <label class="field-label">Deposit</label>
+                <input type="text" id="deposit_value" name="deposit_value" placeholder="0.00" required>
+            </div>
+            <div class="field">
+                <label class="field-label">Comment</label>
+                <input type="text" id="comment_value" name="comment_value" placeholder="入金備註" required>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Order -->
+    <div class="section">
+        <div class="section-header">
+            <div class="section-dot green"></div>
+            <span class="section-title green">開單條件</span>
+        </div>
+        <div class="section-body cols-3">
+            <div class="field">
+                <label class="field-label">Symbol</label>
+                <select id="symbol_list" name="symbol_list">
+                    <option value="NULL">-- NULL --</option>
+                </select>
+            </div>
+            <div class="field">
+                <label class="field-label">Volume</label>
+                <input type="text" id="lots_value" name="lots_value" placeholder="0.00" required>
+            </div>
+            <div class="field">
+                <label class="field-label">Order</label>
+                <input type="text" id="volume_value" name="volume_value" placeholder="Volume" required>
+            </div>
+            <div class="field">
+                <label class="field-label">Price</label>
+                <input type="text" id="price_value" name="price_value" placeholder="0.00000" required>
+            </div>
+            <div class="field">
+                <label class="field-label">Open Order Comment</label>
+                <input type="text" id="open_order_value" name="open_order_value" placeholder="備註" required>
+            </div>
+
+            <!-- TP/SL -->
+            <div class="tpsl-wrapper">
+                <div class="tpsl-row">
+                    <label class="custom-check">
+                        <input type="checkbox" id="tp_sl_check" name="tp_sl_check">
+                        <span class="check-box">
+                            <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                                <path d="M1 4.5L3.8 7.5L10 1" stroke="#0969da" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </span>
+                        <span class="check-label">啟用 TP / SL</span>
+                    </label>
+
+                    <div class="radio-group">
+                        <label class="custom-radio">
+                            <input type="radio" name="tp_sl_set" value="a" checked>
+                            <span class="radio-dot-outer"><span class="radio-dot-inner"></span></span>
+                            <span class="radio-label">Price</span>
+                        </label>
+                        <label class="custom-radio">
+                            <input type="radio" name="tp_sl_set" value="b">
+                            <span class="radio-dot-outer"><span class="radio-dot-inner"></span></span>
+                            <span class="radio-label">Percentage</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="tpsl-inputs">
+                    <div class="tpsl-field">
+                        <span class="field-label" style="color:var(--accent2)">TP</span>
+                        <input class="tp" type="text" id="tp_value" name="tp_value" placeholder="0.00000">
+                    </div>
+                    <div class="tpsl-field">
+                        <span class="field-label" style="color:var(--warn)">SL</span>
+                        <input class="sl" type="text" id="sl_value" name="sl_value" placeholder="0.00000">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Section 3: Stress Test -->
+    <div class="section">
+        <div class="section-header">
+            <div class="section-dot orange"></div>
+            <span class="section-title orange">壓測標準</span>
+        </div>
+        <div class="section-body cols-1">
+            <div class="standard-options">
+
+                <!-- Option A: 數值 -->
+                <div class="standard-option">
+                    <div class="standard-option-header">
+                        <label class="custom-radio orange">
+                            <input type="radio" id="standard_num" name="standard_set" value="standard_value" checked>
+                            <span class="radio-dot-outer"><span class="radio-dot-inner"></span></span>
+                            <span class="radio-label">數值模式</span>
+                        </label>
+                    </div>
+                    <div class="standard-option-inputs">
+                        <div class="field">
+                            <label class="field-label">CPU</label>
+                            <input type="text" id="cpu_value" name="cpu_value" placeholder="%">
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Memory</label>
+                            <input type="text" id="memory_value" name="memory_value" placeholder="%">
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Disk</label>
+                            <input type="text" id="disk_value" name="disk_value" placeholder="GB">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Option B: CPU -->
+                <div class="standard-option">
+                    <div class="standard-option-header">
+                        <label class="custom-radio orange">
+                            <input type="radio" id="standard_cpu" name="standard_set" value="cpu_value">
+                            <span class="radio-dot-outer"><span class="radio-dot-inner"></span></span>
+                            <span class="radio-label">CPU 模式</span>
+                        </label>
+                    </div>
+                    <div class="standard-option-inputs">
+                        <div class="field">
+                            <label class="field-label">Server Hour</label>
+                            <input type="text" id="serverhour_value" name="serverhour_value" placeholder="hrs">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="submit-row">
+        <button type="reset" class="btn btn-ghost">Reset</button>
+        <button type="submit" class="btn btn-primary" id="execute_btn">▶ Execute</button>
+    </div>
+
+</form>

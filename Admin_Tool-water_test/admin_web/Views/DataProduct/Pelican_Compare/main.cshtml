@@ -1,0 +1,282 @@
+﻿@model admin_web.Models.DataProduct.Pelican_CompareModel.ViewModel;
+@{
+    List<string> FileNameList = ViewBag.FileNameList as List<string>;
+    string FileSelect = ViewBag.SelectDate as string;
+}
+<head>
+    <meta charset="utf-8" />
+    <style type="text/css">
+        .tg {
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        .tg td {
+            border-color: black;
+            border-style: solid;
+            border-width: 1px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            overflow: hidden;
+            padding: 10px 5px;
+            word-break: normal;
+        }
+
+        .tg th {
+            border-color: black;
+            border-style: solid;
+            border-width: 1px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: normal;
+            overflow: hidden;
+            padding: 10px 5px;
+            word-break: normal;
+        }
+
+        .tg .tg-0lax {
+            text-align: left;
+            vertical-align: top
+        }
+    </style>
+</head>
+
+<body>
+    <h1>@ViewData["Title"]</h1>
+    <div class="btn-group" role="group" aria-label="Basic example">
+        <button type="submit" id="RunButton" class="btn btn-outline-primary">Run</button>
+        <button type="submit" id="Download" class="btn btn-outline-primary" @(FileSelect != null ? "enabled" : "disabled")>Download File</button>
+    </div>
+    <h2 id="RunResult"></h2>
+
+    <div style="margin-bottom:50px">
+        @if (FileNameList.Count() > 0)
+        {
+            <div class="d-flex align-items-center">
+                <h5>資料日期：</h5>
+                <select id="fileSelect" class="form-select" style="width:250px">
+                    @foreach (var item in FileNameList)
+                    {
+                        if (FileSelect == item)
+                        {
+                            <option value="@item" selected>@item</option>
+                        }
+                        else
+                        {
+                            <option value="@item">@item</option>
+                        }
+                    }
+                </select>
+            </div>
+            <button type="button" class="btn btn-success btn-sm update-btn">更新Note</button>
+            <button type="button" class="btn btn-secondary btn-sm cancel-btn">重置Note</button>
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade" role="tabpanel">
+                    <table id="@(Model.DataList.Any() ? "example" : "example1")" class="table table-striped table-bordered nowrap" style="width:100%">
+                        <thead>
+                            <tr>
+                                @foreach (string Header in Model.HeaderList)
+                                {
+                                    <th>@Header</th>
+                                }
+                                @if (Model.HeaderList.Last() != "Note")
+                                {
+                                    <th style="white-space: normal;">Note</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.DataList)
+                            {
+                                <tr>
+                                    <td value="@row.Server">@row.Server</td>
+                                    <td value="@row.TICKET">@row.TICKET</td>
+                                    <td value="@row.LOGIN">@row.LOGIN</td>
+                                    <td value="@row.OPEN_TIME">@row.OPEN_TIME</td>
+                                    <td value="@row.PROFIT">@row.PROFIT</td>
+                                    <td value="@row.COMMENT">@row.COMMENT</td>
+                                    <td value="@row.Col">@row.Col</td>
+                                    <td style="white-space: normal; word-break: break-word;">
+                                        <form class="d-inline">
+                                            <input type="text" value="@row.Note" class="form-control Note-edit" />
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex align-items-center">
+                <h5>無任何資料，請執行工具以產生新資料</h5>
+            </div>
+        }
+    </div>
+
+</body>
+
+@section Scripts {
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css">
+
+    <script>
+        $(document).ready(function () {
+            $('.tab-pane').addClass('show active');
+            $('#myTabContent table').DataTable({
+                paging: false,
+            });
+
+            $('.tab-pane').removeClass('show active');
+            $('#myTabContent .tab-pane:first').addClass('show active');
+        });
+
+        $(document).ready(function () {
+            // exe
+            $('#RunButton').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Pelican 重複發放PMF 檢查',
+                        Remark: '執行工具'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var formData = new FormData();
+                formData.append('tool_path', 'Pelican Compare Tool');
+                formData.append('output_path', 'output_file');
+                formData.append('exe_name', "main.exe");
+                formData.append('DeleteAllFile', false);
+
+                $('#RunButton').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("RunExe", "Universal")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    beforeSend: function () {
+                        showLoading("正在執行工具");
+                    },
+                    success: function (response) {
+                        alert('工具執行完成！');
+                        location.reload(true); // 重新整理
+                    },
+                    error: function (error) {
+                        hideLoading();
+                        $('#RunButton').prop('disabled', false);
+                        $('#RunResult').html(`<p class="text-danger">${error.responseText}</p>`);
+                    }
+                });
+            });
+
+            // 下拉式選單
+            $('#fileSelect').change(function () {
+                var selectedFile = $(this).val();
+                window.location.href = `Pelican_Compare?date=${encodeURIComponent(selectedFile)}`;
+            });
+
+            // download
+            var output_path = "Pelican Compare Tool\\output_file";
+            $('#Download').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Pelican 重複發放PMF 檢查',
+                        Remark: '下載檔案'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var fileName = "pelican_" + "@FileSelect" + ".xlsx";
+                var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                    '?output_path=' + encodeURIComponent(output_path) +
+                                    '&FileName=' + encodeURIComponent(fileName);
+                window.location.href = downloadUrl;
+            });
+
+            // 更新
+            $('.update-btn').on('click', function () {
+                $.ajax({
+                    url: '/Universal/Insert_Usage_Log',
+                    type: 'POST',
+                    data: {
+                        Tool: 'Pelican 重複發放PMF 檢查',
+                        Remark: '更新備註'
+                    },
+                    success: function () {
+                        console.log("Log Insert Success.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error triggering log insertion:", error);
+                    }
+                });
+
+                var data = [];
+                var file = "@FileSelect";
+
+                $('#example tbody tr').each(function() {
+                    var rowData = {
+                        Server: $(this).find('td:eq(0)').text().trim(),
+                        TICKET: $(this).find('td:eq(1)').text().trim(),
+                        LOGIN: $(this).find('td:eq(2)').text().trim(),
+                        OPEN_TIME: $(this).find('td:eq(3)').text().trim(),
+                        PROFIT: $(this).find('td:eq(4)').text().trim(),
+                        COMMENT: $(this).find('td:eq(5)').text().trim(),
+                        Col: $(this).find('td:eq(6)').text().trim(),
+                        Note: $(this).find('td:eq(7) input').val().trim()
+                    };
+                    data.push(rowData);
+                });
+
+                var formData = new FormData();
+                formData.append('data', JSON.stringify(data));
+                formData.append('file', file);
+
+                $.ajax({
+                    url: '/DataProduct/Pelican_Compare_UpdateExcel',
+                    type: 'POST',
+                    contentType: false,
+                    processData: false,
+                    data: formData,
+                    success: function (response) {
+                        alert("Update Success.");
+                        location.reload();
+                    }
+                });
+            });
+
+            // 取消
+            $('.cancel-btn').on('click', function () {
+                location.reload();
+            });
+        });
+    </script>
+}

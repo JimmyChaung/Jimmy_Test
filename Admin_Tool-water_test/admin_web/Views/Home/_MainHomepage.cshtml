@@ -1,0 +1,50 @@
+﻿@{
+    var Homepage_Tool_Main = ViewBag.Homepage_Tool_Main as List<Tool_Info_Model.tool_class>;
+    var Homepage_Tool_Sub = ViewBag.Homepage_Tool_Sub as Dictionary<string, List<Tool_Info_Model.tool_info>>;
+}
+@* Sidebar *@            
+<div class="col-2 d-flex flex-column gap-2" style="position:fixed;" role="tablist">
+    @{ 
+        string set_active = "active";
+    }
+    @foreach (var item in Homepage_Tool_Main)
+    {
+        <a class="custom-list-item @set_active" id="list-@item.Class-list" href="#list-@item.Class" role="tab" aria-controls="list-@item.Class">@item.Name</a>
+        set_active = "";
+    }
+</div>
+@* Tool Cards *@            
+<div class="col-9" style="margin-left: 17%;">
+    <div class="tab-content" id="nav-tabContent">
+        @{ 
+            string status = "show active";
+        } 
+        @foreach (var entry in Homepage_Tool_Sub)
+        {
+            <div class="tab-pane fade @status" id="list-@entry.Key" role="tabpanel" aria-labelledby="list-@entry.Key-list">
+                @foreach (var item in entry.Value)
+                {
+                    @if (item.Enable == 1)
+                    {
+                        <div class="tool-card">
+                            <div class="tool_name">@item.ToolName</div>
+                            @if (item.Type == "Path")
+                            {
+                                <a href="/Home/Index?Path=@item.ToolID" class="btn-custom" role="button">前往目錄<i class="bi bi-arrow-right-square"></i></a>
+                            }
+                            else if(item.Type == "Tool")
+                            {
+                                <a href="@item.Href" class="btn-custom" role="button">使用工具<i class="bi bi-cursor"></i></a>
+                                if (item.Faq_Btn)
+                                {
+                                    <a href="/Faq/FaqHomepage?tool=@item.ToolID" class="btn-custom" role="button">FAQ<i class="bi bi-question-circle"></i></a>
+                                }
+                            }
+                        </div>
+                    }
+                }
+            </div>
+            status = "";
+        }
+    </div>
+</div>

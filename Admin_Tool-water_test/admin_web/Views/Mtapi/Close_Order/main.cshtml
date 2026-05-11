@@ -1,0 +1,221 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+    <h1>@ViewData["Title"]</h1>
+
+    <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#dateModal">
+        下載歷史紀錄
+    </button>
+
+    <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasScrolling" aria-controls="offcanvasScrolling">Server列表</button>
+
+    <div class="btn-toolbar" role="toolbar" style="padding-top: 50px;">
+        <div class="input-group me-2" role="group">
+            <input type="file" class="form-control" id="FileInput" name="uploadedFile" accept=".xlsm,.xlsx" required />
+            <button type="submit" class="btn btn-outline-primary" id="executeButton">執行</button>
+            <button type="submit" id="TemplateDownload" class="btn btn-outline-info">範本</button>
+        </div>
+    </div>
+
+    <div id="logView" style="display: none; padding-top: 50px;">
+        <table id="logTable" class="table table-striped table-bordered nowrap"></table>
+    </div>
+
+    <div class="offcanvas offcanvas-end" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="offcanvasScrolling" aria-labelledby="offcanvasScrollingLabel" style="width:500px;">
+        <div class="offcanvas-header">
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            <h5 class="offcanvas-title" id="offcanvasScrollingLabel">Server列表</h5>
+        </div>
+        <div class="offcanvas-body">
+            <table id="ServerList" class="table table-striped"></table>
+        </div>
+    </div>
+
+    <!-- 選擇日期範圍的 Modal -->
+    <div class="modal fade" id="dateModal" tabindex="-1" aria-labelledby="dateModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dateModalLabel">下載歷史關單紀錄</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="dateRange">選擇日期範圍：</label>
+                    <input type="text" id="dateRange" placeholder="請選擇日期範圍" style="width: 250px;">
+
+                    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+                    <script>
+                        flatpickr("#dateRange", {
+                            mode: "range",
+                            dateFormat: "Y-m-d"
+                        });
+                    </script>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary" id="downloadBtn">下載</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+@section Scripts {
+    <!-- Bootstrap 5 Bundle (includes Popper.js) -->
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.1.4/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/fixedcolumns/5.0.1/js/dataTables.fixedColumns.js"></script>
+    <script src="https://cdn.datatables.net/fixedcolumns/5.0.1/js/fixedColumns.bootstrap5.js"></script>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.3/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/5.0.1/css/fixedColumns.bootstrap5.css">
+
+    <script>
+        $(document).ready(function () {
+            $.ajax({
+                url: '/Universal/Get_All_Server_Config',
+                type: 'GET',
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    if (response.data && Array.isArray(response.data)) {
+                        let filteredData = response.data.filter(item => item.mt === "mt4");
+
+                        if (filteredData.length > 0) {
+                            $('#ServerList').DataTable({
+                                data: filteredData,
+                                columns: [
+                                    { title: "Server", data: "serveR_NAME", className: "text-start align-top" },
+                                    { title: "Proxy", data: "serveR_PROXY", className: "text-start align-top" },
+                                ],
+                                order: [],
+                                pageLength: 15,
+                                lengthChange: false,
+                            });
+                        }
+                    } else {
+                        console.error("無有效資料");
+                    }
+                },
+                error: function (error) {
+                    console.log(error.responseText);
+                },
+                complete: function () {
+                    hideLoading();
+                }
+            });
+        });
+
+        $(document).on('click', '#executeButton', function (e) {
+            e.preventDefault();
+
+            $.ajax({
+                url: '/Universal/Insert_Usage_Log',
+                type: 'POST',
+                data: {
+                    Tool: '關單工具',
+                    Remark: '執行工具'
+                },
+                success: function () {
+                    console.log("Log Insert Success.");
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error triggering log insertion:", error);
+                }
+            });
+
+            var fileInput = $('#FileInput')[0];
+            var file = fileInput.files[0];
+
+            if (!file) {
+                alert('請選擇文件');
+                return;
+            }
+
+            $('#logView').hide();
+            if ($.fn.DataTable.isDataTable('#logTable')) {
+                $('#logTable').DataTable().clear().destroy();
+            }
+
+            $('#logTableHeader').empty();
+            $('#logTableBody').empty();
+
+            showLoading("Executing");
+
+            var formData = new FormData();
+            formData.append('file', file);
+
+            $.ajax({
+                url: '/Mtapi/CloseOrder_Program',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    if (response.data && Array.isArray(response.data)) {
+                        $('#logView').show();
+                        $('#logTable').DataTable({
+                            data: response.data,
+                            destroy: true,
+                            columns: [
+                                { title: "Server", data: "server", className: "text-start align-top" },
+                                { title: "Ticket", data: "ticket", className: "text-start align-top" },
+                                { title: "Result", data: "result", className: "text-start align-top" },
+                            ],
+                            responsive: true,
+                            scrollX: true,
+                            order: [],
+                        });
+                    } else {
+                        console.error("無有效資料");
+                    }
+                },
+                error: function (error) {
+                    console.log(error);
+                },
+                complete: function () {
+                    hideLoading();
+                }
+            });
+        });
+
+        $('#TemplateDownload').on('click', function () {
+            var output_path = "CloseOrder\\Template";
+            var fileName = "關單工具範本.xlsx";
+            var downloadUrl = '@Url.Action("DownloadFile", "Universal")' +
+                                '?output_path=' + encodeURIComponent(output_path) +
+                                '&FileName=' + encodeURIComponent(fileName);
+            window.location.href = downloadUrl;
+        });
+
+        $("#downloadBtn").click(function () {
+            var dateRange = $("#dateRange").val();
+            if (!dateRange) {
+                alert("請選擇日期範圍");
+                return;
+            }
+
+            var dates = dateRange.split(" to ");
+            var startDate = dates[0];
+            var endDate = dates[1];
+
+            console.log(startDate);
+            console.log(endDate);
+
+            var downloadUrl = "/Mtapi/CloseOrder_ExportHistoryLog?startDate=" + encodeURIComponent(startDate) + "&endDate=" + encodeURIComponent(endDate);
+            window.location.href = downloadUrl;
+        });
+    </script>
+}
